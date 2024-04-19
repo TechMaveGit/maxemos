@@ -28,7 +28,10 @@
     <div class="main_page_title">
         <div class="common_pagetitlebig" style="width: 30%;">Accrud Working Report</div>
         <div class="btns_rightimport" style="display: inline-flex">
-            <div><strong>Total Amount : </strong><span id="totalEMIAmount" class="text-danger" style="font-weight: 700;"></span></div>
+            <div>
+                <strong>Total Amount : </strong><span id="totalEMIAmount" class="text-danger" style="font-weight: 700;"></span>
+                | <strong>Total Interest Amount : </strong><span id="totalINTERESTAmount" class="text-danger" style="font-weight: 700;"></span>
+            </div>
             
         </div>
     </div>
@@ -155,6 +158,7 @@
                 ]
             } );
             $("#totalEMIAmount").text(data.totalEMIAmount);
+            $("#totalINTERESTAmount").text(data.totalINTERESTAmount);
         });
     }
 

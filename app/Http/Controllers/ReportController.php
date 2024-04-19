@@ -679,35 +679,49 @@ class ReportController extends Controller
         $output = array();
         $currentMonth = date("n");
         for ($i = 0; $i <= 12; $i++) {
-            if ($currentMonth <= 4) {
+            if ($currentMonth <= 1) {
+                $stime = date('1-3-Y');
+                $ss = 3;
+                $dend = date('m/Y', strtotime($stime));
+                $dstart = date('m-Y', strtotime("-" . $ss . " months", strtotime($stime)));
+
+                $output[] = $dstart . ' - ' . $dend;
+                $output[] = date('F Y', strtotime("-" . ($ss * 2) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 1) . " months", strtotime($stime)));
+                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
+                $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
+                break;
+            }elseif ($currentMonth <= 4) {
                 $stime = date('1-4-Y');
-                $ss = 4;
+                $ss = 3;
                 $dend = date('F Y', strtotime('-1 months',strtotime($stime)));
                 $dstart = date('F Y', strtotime("-" . $ss . " months", strtotime($stime)));
 
                 $output[] = $dstart . ' - ' . $dend;
                 $output[] = date('F Y', strtotime("-" . ($ss * 2) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 1) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 5) . " months", strtotime($stime)));;
+                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
+                $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
                 break;
-            } elseif ($currentMonth <= 8) {
+            } elseif ($currentMonth <= 7) {
                 $stime = date('1-8-Y');
-                $ss = 4;
+                $ss = 3;
                 $dend = date('m/Y', strtotime($stime));
                 $dstart = date('m-Y', strtotime("-" . $ss . " months", strtotime($stime)));
 
                 $output[] = $dstart . ' - ' . $dend;
                 $output[] = date('F Y', strtotime("-" . ($ss * 2) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 1) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 5) . " months", strtotime($stime)));;
+                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
+                $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
                 break;
-            } elseif ($currentMonth <= 12) {
+            } elseif ($currentMonth <= 10) {
                 $stime = date('1-12-Y');
-                $ss = 4;
+                $ss = 3;
                 $dend = date('m/Y', strtotime($stime));
                 $dstart = date('m-Y', strtotime("-" . $ss . " months", strtotime($stime)));
 
                 $output[] = $dstart . ' - ' . $dend;
                 $output[] = date('F Y', strtotime("-" . ($ss * 2) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 1) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 5) . " months", strtotime($stime)));;
+                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
+                $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
                 break;
             }
         }

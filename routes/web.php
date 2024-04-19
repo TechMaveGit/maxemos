@@ -338,6 +338,9 @@ Route::group(['prefix'=>'admin', 'middleware'=>'auth:web'], function(){
 
     Route::get('next-month-emi-report',[ReportController::class,'nextMonthEmiReports'])->name('nextMonthEmiReports');
     Route::post('filter-next-month-emi-report',[ReportController::class,'filterNextMonthEmiReports'])->name('filterNextMonthEmiReports');
+    
+    Route::get('accrud-working-report',[ReportController::class,'accrudWorkingReports'])->name('accrudWorkingReports');
+    Route::post('accrud-working-report',[ReportController::class,'filterAccrudWorkingReports'])->name('filterAccrudWorkingReports');
 });
 
 

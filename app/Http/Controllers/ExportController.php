@@ -708,6 +708,53 @@ class ExportController extends Controller
             //                  $htmlStr .= '<th scope="col">NET EMI Amount</th>';
             //              }
             //          }
+        }else if($page == 'accrud-working'){
+
+            $fileName = 'AccrudWorking-' . date('Y-m-d');
+            $content = 'Sr. No.,Customer Code,Customer Name,Loan Id,Loan Type,Start Date,Closing Date,ROI %,No Of Dates,O/S AMOUNT (Sum),ACCRUD INTEREST (Sum)' . "\r\n";
+
+
+            if($request->quarterlyFilter){
+                $rdata = explode('-',$request->quarterlyFilter) ;
+                $startDate = date('Y-m-1',strtotime($rdata[0]));
+                $endDate = date('Y-m-t', strtotime($rdata[1]));
+            }
+    
+            $loanType = $request->loanTypereportFilter;
+           
+    
+            $SUBQRY = '';
+            if($loanType && $loanType == '3'){
+                $SUBQRY .= " AND date(rawl.tenureDueDate) BETWEEN date('$startDate') AND date('$endDate')";
+                $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate,rawl.amount as netemiAmount,rawl.openingBalanceLatest,rawl.interestAmountPayble,categories.name AS cname,rawl.status,rawl.tenureDueDate AS t_date,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id=rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId=u.id LEFT JOIN categories ON categories.id=alh.loanCategory  WHERE u.id>0 AND rawl.txnType='out' AND rawl.openingBalanceLatest > 0  $SUBQRY  ORDER BY u.id DESC");
+            }elseif ($loanType && $loanType != '0') {
+                $SUBQRY = ' AND apply_loan_histories.loanCategory=' . $loanType;
+                $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,apply_loan_histories.rateOfInterest,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount,loan_emi_details.emiAmount,loan_emi_details.lateCharges AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND DATE(loan_emi_details.emiDate) BETWEEN '$startDate' AND '$endDate' $SUBQRY ORDER BY loan_emi_details.emiDate,users.customerCode DESC");
+            }else{
+                $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,apply_loan_histories.rateOfInterest,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount,loan_emi_details.emiAmount,loan_emi_details.lateCharges AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND DATE(loan_emi_details.emiDate) BETWEEN '$startDate' AND '$endDate' $SUBQRY ORDER BY loan_emi_details.emiDate,users.customerCode DESC");
+    
+            }
+            
+
+            if (count($results)) {
+                foreach ($results as $k=>$row) {
+                    $sdate = date('Y-m-d', strtotime($row->t_date));
+    
+                    $datetime1 = new DateTime($sdate);
+                    $datetime2 = new DateTime($endDate);
+                    $interval = $datetime1->diff($datetime2);
+                    $totalDays = $interval->days;
+    
+                    $tdataInterst = ($row->netemiAmount - $row->emiAmount);
+                    if($loanType == '3'){
+                        $tdataInterst =  ($row->interestAmountPayble);
+                    }
+    
+                    $content .= ($k + 1) . ',' . $row->customerCode . ',' . $row->name . ',' .  'LF0' . $row->id . ','  .  $row->cname. ','  .  $sdate. ','  .  $endDate . ',' . $row->rateOfInterest . ',' . $totalDays . ',' . $row->netemiAmount. ',' . $tdataInterst . "\r\n";
+                    
+                }
+            }
+
         } else {
             return redirect()->back();
         }

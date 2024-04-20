@@ -88,6 +88,7 @@
                 <div class="col-lg-12">
                     
                     <div>
+                        <h6><strong class="text-danger">Note</strong> : Only Raw Material Financing Loan Data Now Inculded In All Loan Type Filter.</h6>
                         <div class="card mt-3">
                             <div id="mainTblHtml" class="is-scrollbar-hidden min-w-full overflow-x-auto" x-data="pages.tables.initExample1"><div id="mainTbl_wrapper" class="dataTables_wrapper no-footer"><div class="dataTables_length" id="mainTbl_length"><label>Show <select name="mainTbl_length" aria-controls="mainTbl" class=""><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select> entries</label></div><div id="mainTbl_filter" class="dataTables_filter"><label>Search:<input type="search" class="" placeholder="" aria-controls="mainTbl"></label></div><table id="mainTbl" class="is-hoverable w-full text-left dataTable no-footer" role="grid" aria-describedby="mainTbl_info">
                             <thead>

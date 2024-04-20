@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\ApplyLoanHistory;
+use App\Models\User;
 use App\Models\Bank;
+use App\Models\RawMaterialsTxnDetail;
 use DateTime;
 use Illuminate\Support\Facades\DB;
 use stdClass;
@@ -675,7 +677,8 @@ class ReportController extends Controller
         return ['html' => $htmlStr, 'totalEMIAmount' => number_format($totalEMIAmount, 2)];
     }
 
-    public function quaturlyData(){
+    public function quaturlyData()
+    {
         $output = array();
         $currentMonth = date("n");
         for ($i = 0; $i <= 12; $i++) {
@@ -690,10 +693,10 @@ class ReportController extends Controller
                 $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
                 $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
                 break;
-            }elseif ($currentMonth <= 4) {
+            } elseif ($currentMonth <= 4) {
                 $stime = date('1-4-Y');
                 $ss = 3;
-                $dend = date('F Y', strtotime('-1 months',strtotime($stime)));
+                $dend = date('F Y', strtotime('-1 months', strtotime($stime)));
                 $dstart = date('F Y', strtotime("-" . $ss . " months", strtotime($stime)));
 
                 $output[] = $dstart . ' - ' . $dend;
@@ -731,7 +734,7 @@ class ReportController extends Controller
     public function accrudWorkingReports()
     {
         $output = $this->quaturlyData();
-        return view('pages.reports.accrud-working',compact('output'));
+        return view('pages.reports.accrud-working', compact('output'));
     }
 
 
@@ -739,27 +742,26 @@ class ReportController extends Controller
     public function filterAccrudWorkingReports(Request $request)
     {
 
-        if($request->quarterlyFilter){
-            $rdata = explode('-',$request->quarterlyFilter) ;
-            $startDate = date('Y-m-1',strtotime($rdata[0]));
+        if ($request->quarterlyFilter) {
+            $rdata = explode('-', $request->quarterlyFilter);
+            $startDate = date('Y-m-1', strtotime($rdata[0]));
             $endDate = date('Y-m-t', strtotime($rdata[1]));
         }
 
         $loanType = $request->loanTypereportFilter;
-       
+
 
         $SUBQRY = '';
-        if($loanType && $loanType == '3'){
+        if ($loanType && $loanType == '3') {
             $SUBQRY .= " AND date(rawl.tenureDueDate) BETWEEN date('$startDate') AND date('$endDate')";
             $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate,rawl.amount as netemiAmount,rawl.openingBalanceLatest,rawl.interestAmountPayble,categories.name AS cname,rawl.status,rawl.tenureDueDate AS t_date,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id=rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId=u.id LEFT JOIN categories ON categories.id=alh.loanCategory  WHERE u.id>0 AND rawl.txnType='out' AND rawl.openingBalanceLatest > 0  $SUBQRY  ORDER BY u.id DESC");
-        }elseif ($loanType && $loanType != '0') {
+        } elseif ($loanType && $loanType != '0') {
             $SUBQRY = ' AND apply_loan_histories.loanCategory=' . $loanType;
             $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,apply_loan_histories.rateOfInterest,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount,loan_emi_details.emiAmount,loan_emi_details.lateCharges AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND DATE(loan_emi_details.emiDate) BETWEEN '$startDate' AND '$endDate' $SUBQRY ORDER BY loan_emi_details.emiDate,users.customerCode DESC");
-        }else{
+        } else {
             $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,apply_loan_histories.rateOfInterest,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount,loan_emi_details.emiAmount,loan_emi_details.lateCharges AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND DATE(loan_emi_details.emiDate) BETWEEN '$startDate' AND '$endDate' $SUBQRY ORDER BY loan_emi_details.emiDate,users.customerCode DESC");
-
         }
-        
+
         $rsr = 1;
         $totalAmount = 0;
         $totalINTERESTAmount = 0;
@@ -804,15 +806,15 @@ class ReportController extends Controller
                  <td>' . ($row->rateOfInterest) . '</td>
                  <td>' . ($totalDays) . '</td>';
                 $htmlStr .= '<td>' . number_format($row->netemiAmount, 2) . '</td>';
-                if($loanType == '3'){
+                if ($loanType == '3') {
                     $htmlStr .= '<td>' . ($row->interestAmountPayble) . '</td>';
-                    $totalINTERESTAmount += $row->interestAmountPayble ;
-                }else{
+                    $totalINTERESTAmount += $row->interestAmountPayble;
+                } else {
                     $htmlStr .= '<td>' . ($row->netemiAmount - $row->emiAmount) . '</td>';
                     $totalINTERESTAmount += ($row->netemiAmount - $row->emiAmount);
                 }
                 $totalAmount += $row->netemiAmount;
-                
+
 
 
                 $htmlStr .= '</tr>';
@@ -828,6 +830,135 @@ class ReportController extends Controller
              </tfoot>';
         }
         $htmlStr .= '</table>';
-        return ['html' => $htmlStr, 'totalEMIAmount' => number_format($totalAmount, 2),'totalINTERESTAmount' => number_format($totalINTERESTAmount, 2)];
+        return ['html' => $htmlStr, 'totalEMIAmount' => number_format($totalAmount, 2), 'totalINTERESTAmount' => number_format($totalINTERESTAmount, 2)];
+    }
+
+
+    public function interestCalculator()
+    {
+        $allcustomers = User::select('id', 'customerCode', 'name', 'mobile', 'email')->with('pendingloans:id,userId,loanCategory,status')->has('pendingloans')->get()->map(function ($customer) {
+            foreach ($customer->pendingloans as $loan) {
+                if ($loan['loanCategory'] == 3) {
+                    $loan['status'] = 'customer-approved';
+                } 
+                // else {
+                //     $loan['status'] = 'disbursed';
+                // }
+            }
+            return $customer;
+        })->toArray();
+        return view('pages.reports.interest-calculator', compact('allcustomers'));
+    }
+
+    public function interestCalculatorData(Request $request)
+    {
+        $loanId = $request->loan;
+        $collectionAmount = $request->payamount;
+        $objComm = new CommonController();
+
+        $collectionDate = (strtotime($request->transactionDate)) ? date('Y-m-d', strtotime($request->transactionDate)) : '';
+        session(['collectionAmount' => $collectionAmount]);
+        session(['totalInterest' => []]);
+
+        $loopchk = 0;
+        $totalInterestSum = [];
+        startSattleTxn:
+        $collectionAmount = session('collectionAmount');
+        $loanDetails = ApplyLoanHistory::where(['id' => $loanId])->first();
+        if (!empty($loanDetails)) {
+            $rateOfInterest = $loanDetails->rateOfInterest;
+            $amountDetails = RawMaterialsTxnDetail::where(['loanId' => $loanId, 'isFullSettled' => 0, 'txnType' => 'out'])->orderBY('id', 'asc')->first();
+            if (!empty($amountDetails) && $collectionAmount > 0) {
+
+                $transactionDate = date('Y-m-d', strtotime($amountDetails->interestStartDate));
+                $amount = $amountDetails->openingBalanceLatest;
+                $tenureDueDate = $amountDetails->tenureDueDate;
+
+                $lateCharges = 0;
+                $newLateTenureDueDate = date('Y-m-d', strtotime($tenureDueDate . ' + 10 days'));
+                if (strtotime($collectionDate) > strtotime($newLateTenureDueDate)) {
+
+                    if ($collectionAmount > $amount) {
+                        $lateCharesArr = $objComm->calculateLateCharges($collectionDate, $newLateTenureDueDate, $amount);
+                    } else {
+                        $lateCharesArr = $objComm->calculateLateCharges($collectionDate, $newLateTenureDueDate, $collectionAmount);
+                    }
+                    $lateCharges = $lateCharesArr['lateCharges'];
+
+                    $collectionAmount = $collectionAmount - $lateCharges;
+                }
+
+                $openingBalance = $amount;
+
+
+                if ($collectionAmount > $openingBalance) {
+                    $calcRes = $this->getInterestAndPaybleAmountRawMaterial($loanDetails->tenure, $transactionDate, $collectionDate, $openingBalance, $rateOfInterest);
+                } else {
+                    $calcRes = $this->getInterestAndPaybleAmountRawMaterial($loanDetails->tenure, $transactionDate, $collectionDate, $collectionAmount, $rateOfInterest);
+                }
+
+                $totalInterestSum[] = $calcRes;
+                // echo '<pre>'; print_r($calcRes);exit;
+                $rateOfInterest = $calcRes['rateOfInterest'];
+                $interestPayble = $calcRes['interestPayble'];
+
+                $leftUserAmount = $collectionAmount - $interestPayble;
+                $baseAmountCredit = $leftUserAmount;
+                
+                if ($leftUserAmount >= $amount) {
+                    $baseAmountCredit = $amount;
+                    $leftUserAmount = round($leftUserAmount - $amount);
+                    $collectionAmount = $amount + $interestPayble;
+                    session(['collectionAmount' => $leftUserAmount]);
+                } else {
+                    $baseAmountCredit = $leftUserAmount;
+                    $collectionAmount = $leftUserAmount + $interestPayble;
+                    session(['collectionAmount' => 0]);
+                }
+                $baseAmountCredit = ($baseAmountCredit > 0) ? $baseAmountCredit : 0;
+                $loopchk++;
+                goto startSattleTxn;
+            }
+            echo json_encode(['totalInterest'=>$totalInterestSum]);
+            exit;
+        }
+        echo json_encode(['totalInterest'=>$totalInterestSum]);
+        exit;
+    }
+
+    public function getInterestAndPaybleAmountRawMaterial($tenureId, $transactionDate, $collectionDate, $amount, $rateOfInterest)
+    {
+        $tenuverMonth = DB::table('tenures')->whereId($tenureId)->pluck('name')->first();
+
+        $tmonth = 2;
+        if ($tenuverMonth) {
+            $newData = explode('Days', $tenuverMonth);
+            $tmonth = (int)trim($newData[0]) ?? 2;
+        }
+
+        $datetime1 = date_create($transactionDate);
+        $datetime2 = date_create($collectionDate);
+
+        // Calculates the difference between DateTime objects
+        $interval = date_diff($datetime1, $datetime2);
+
+        // Display the result
+        $numOfDays = $interval->format('%a');
+        if ($tmonth == 30 && $numOfDays <= 7) {
+            $numOfDays = 7;
+        } elseif ($tmonth > 30 && $numOfDays <= 15) {
+            $numOfDays = 15;
+        }
+
+        $oneYearInterest = ($amount * $rateOfInterest) / 100;
+        $oneDayInterest = $oneYearInterest / 365;
+        $totalInterest = $oneDayInterest * $numOfDays;
+
+        $tdsPercent = 10;
+        $tdsAmount = ($totalInterest * $tdsPercent) / 100;
+        $interestPayble = $totalInterest - $tdsAmount;
+        $playbleLoanAmount = round($amount + $interestPayble);
+        $returnArr = ['numOfDays' => $numOfDays, 'rateOfInterest' => $rateOfInterest, 'loanAmount' => round($amount), 'playbleLoanAmount' => $playbleLoanAmount, 'totalInterest' => round($totalInterest), 'interestPayble' => round($interestPayble), 'tdsPercent' => round($tdsPercent), 'tdsAmount' => round($tdsAmount)];
+        return $returnArr;
     }
 }

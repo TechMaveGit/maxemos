@@ -90,4 +90,8 @@ class User extends Authenticatable
         }
     }
 
+    public function pendingloans()
+    {
+        return $this->hasMany(ApplyLoanHistory::class,'userId','id')->where('loanCategory',3)->whereIn('status',['customer-approved','disbursed']);
+    }
 }

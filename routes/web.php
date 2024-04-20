@@ -341,6 +341,9 @@ Route::group(['prefix'=>'admin', 'middleware'=>'auth:web'], function(){
     
     Route::get('accrud-working-report',[ReportController::class,'accrudWorkingReports'])->name('accrudWorkingReports');
     Route::post('accrud-working-report',[ReportController::class,'filterAccrudWorkingReports'])->name('filterAccrudWorkingReports');
+
+    Route::get('interest-calculator',[ReportController::class,'interestCalculator'])->name('interestCalculator');
+    Route::post('interest-calculator-data',[ReportController::class,'interestCalculatorData'])->name('interestCalculatorData');
 });
 
 

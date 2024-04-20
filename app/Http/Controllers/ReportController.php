@@ -778,7 +778,7 @@ class ReportController extends Controller
                        <th>Start Date</th>
                        <th>Closing Date</th>
                        <th>ROI %</th>
-                       <th>No Of Dates</th>
+                       <th>No Of Days</th>
                        <th>O/S AMOUNT (Sum)</th>
                        <th>ACCRUD INTEREST (Sum)</th>
                    </tr>

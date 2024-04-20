@@ -711,7 +711,7 @@ class ExportController extends Controller
         }else if($page == 'accrud-working'){
 
             $fileName = 'AccrudWorking-' . date('Y-m-d');
-            $content = 'Sr. No.,Customer Code,Customer Name,Loan Id,Loan Type,Start Date,Closing Date,ROI %,No Of Dates,O/S AMOUNT (Sum),ACCRUD INTEREST (Sum)' . "\r\n";
+            $content = 'Sr. No.,Customer Code,Customer Name,Loan Id,Loan Type,Start Date,Closing Date,ROI %,No Of Days,O/S AMOUNT (Sum),ACCRUD INTEREST (Sum)' . "\r\n";
 
 
             if($request->quarterlyFilter){

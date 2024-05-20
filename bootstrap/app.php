@@ -52,10 +52,4 @@ $app->singleton(
 |
 */
 
-
-
-// $app->usePublicPath(
-//   $app->basePath("public_html")
-// );
-
 return $app;

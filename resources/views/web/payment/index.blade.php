@@ -1,4 +1,4 @@
-@extends('web.layout.master')
+@extends('web.layout.main')
 @section('content')
 <link rel="stylesheet" type="text/css" href="{{asset('assets/web')}}/asset/css/app.css">
 <link rel="stylesheet" type="text/css" href="{{asset('assets/web')}}/asset/css/dashboard-css.css">

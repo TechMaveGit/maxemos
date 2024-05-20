@@ -46,11 +46,10 @@
                                 <label class="block">
                                     <span>Loan Type</span>
                                     <select id="loanTypereportFilter" class="form-select mt-1.5 w-full rounded-full border border-slate-300 bg-white px-4 py-2 hover:border-slate-400 focus:border-primary dark:border-navy-450 dark:bg-navy-700 dark:hover:border-navy-400 dark:focus:border-accent">
-                                        <option value="0">All Loan</option>
+                                        <option value="3">Raw Material Financing</option>
                                         <option value="1">Business Loan</option>
                                         <option value="2">Personal loan</option>
                                         <option value="8">Outstanding Loan</option>
-                                        <option value="3">Raw Material Financing</option>
                                     </select>
                                 </label>
                             </div>

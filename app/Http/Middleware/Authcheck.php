@@ -22,13 +22,14 @@ class Authcheck
                 if ($request->is('admin/*')) {
                     abort(200, '', ['Location' => route('welcomeWeb')]);
                 }
-            } elseif (isset(auth()->user()->userType) && auth()->user()->userType == '1') {
-                $userPermissions = session()->get('userPermissions');
-                if (!$userPermissions) {
-                    Auth::logout();
-                    return redirect()->route('login');
-                }
-            }
+            } 
+            //elseif (isset(auth()->user()->userType) && auth()->user()->userType == '1') {
+            //    $userPermissions = session()->get('userPermissions');
+            //    if (!$userPermissions) {
+             //       Auth::logout();
+              //      return redirect()->route('login');
+            //    }
+            //}
         }
         return $next($request);
     }

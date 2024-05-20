@@ -65,12 +65,11 @@ class ApplyLoanController extends Controller
         'WB' => 'West Bengal'
     ];
 
-    public function viewAdminLaonDetail(Request $request,$id){
-        
+    public function viewAdminLaonDetail(Request $request){
             if(auth()->check() && auth()->user()->email != 'admin@gmail.com'){        
                 Auth::logout();
             }
-            $id = $id;
+            $id = $request->id;
             $loanDetails=ApplyLoanHistory::where(DB::raw('md5(id)'), $id)->first();
             $rawLoanDetails=RawMaterialsLoanRequest::where('loanId', $loanDetails->id)->where('status','disburse-scheduled')->first() ?? null;
         // if($loanDetails->isAdminApproved != "pending"){
@@ -98,9 +97,8 @@ class ApplyLoanController extends Controller
         // }
     }
 
-    public function viewAdminLaonDetailSubmit(Request $request,$id){
-        // dd('--');
-        $id = $id;
+    public function viewAdminLaonDetailSubmit(Request $request){
+        $id = $request->id;
         $loanStatus = $request->loanData;
         $rejectionReason = $loanStatus == 'approved' ? null : $request->rejectionReason;
         $loanData = ApplyLoanHistory::where('id',$id)->first();
@@ -1202,7 +1200,7 @@ class ApplyLoanController extends Controller
 
 
             //$textStr =$verifyWith.'  has been approved above mentioned loan amount & rate of interest (ROI), Please accept this letter to get this loan.';
-                $textStr ='As per your Kyc and employment, maxemo allows you to get the loan amount as mentioned above, if everything is ok please click on accept to approve the loan or reject in case of anything else. please contact assigned credit personnel in case ofany query.';
+                $textStr ='As per your Kyc and employment, maxemo allows you to get the loan amount as mentioned above, if everything is ok please click on accept to approve the loan or reject in case of anything else. please contact assigned credit personnel in case&nbsp;ofany&nbsp;query.';
                 $htmlSt .='<tr>
                             <th colspan="2" style="width: 50%;padding: 6px !important;">
                             <strong>
@@ -1443,7 +1441,7 @@ class ApplyLoanController extends Controller
 
 
                 //$textStr =$verifyWith.'  has been approved above mentioned loan amount & rate of interest (ROI), Please accept this letter to get this loan.';
-                $textStr ='As per your Kyc and employment, maxemo allows you to get the loan amount as mentioned above, if everything is ok please click on accept to approve the loan or reject in case of anything else. please contact assigned credit personnel in case of anyquery.';
+                $textStr ='As per your Kyc and employment, maxemo allows you to get the loan amount as mentioned above, if everything is ok please click on accept to approve the loan or reject in case of anything else. please contact assigned credit personnel in case&nbsp;of&nbsp;anyquery.';
                 $htmlSt .='<tr>
                             <th colspan="2" style="width: 50%;padding: 6px !important;">
                             <strong>
@@ -1753,10 +1751,10 @@ class ApplyLoanController extends Controller
         $verifyWith = env('APP_NAME');
         if (config('app.env') == "production") {
             AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com", "Shorya Mittal", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
-            // AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
+            AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
               
-              AppServiceProvider::sendMail("ashish.kumar@maxemocapital.com", "Ashish Kumar", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
-             AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
+            AppServiceProvider::sendMail("ashish.kumar@maxemocapital.com", "Ashish Kumar", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
+            AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
         } else {
             AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
             AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);

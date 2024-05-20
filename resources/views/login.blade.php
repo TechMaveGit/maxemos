@@ -90,9 +90,11 @@
                 data: formData,
                 cache:false,
                 contentType: false,
+                dataType: 'json',
                 processData: false,
                 success: (data) => {
-                    var obj = JSON.parse(data);
+                    console.log(data);
+                    var obj = data;
                     $('#formSubmitBtn').text('Submit').removeAttr('disabled');
                     if(obj.status=='success')
                     {

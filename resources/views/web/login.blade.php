@@ -157,6 +157,7 @@
                     contentType: false,
                     processData: false,
                     success: (data) => {
+                    console.log(data,JSON.parse(data));
                         var obj = JSON.parse(data);
                         $('#formSubmitBtn').text('Submit').removeAttr('disabled');
                         if (obj.status == 'success') {

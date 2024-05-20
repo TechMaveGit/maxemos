@@ -244,3 +244,5 @@
     </ul>
   </div>
 </nav>
+     crossorigin="anonymous"></script>
+<meta name="google-adsense-account" content="ca-pub-3234816981395206">

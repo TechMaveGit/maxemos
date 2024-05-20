@@ -196,11 +196,13 @@ class ApplyController extends Controller
 
     public function webPancardVerify(Request $request)
     {
+        //return $request->all();
         $lobObj = new GloadController();
         $user_id = auth()->user()->id;
         $saveUp = [];
         $saveUpDocs = [];
         if ($request->hasFile('panCardFront')) {
+            
             $pancard = $lobObj->ocr_adhaar_verification(3);
             if (empty($pancard) || !isset($pancard->msg->father_name)) {
                 return response()->json([
@@ -657,8 +659,13 @@ class ApplyController extends Controller
             'phone' => 'required|min:10|numeric',
             'message' => 'required|min:10'
         ]);
+        
+        $name = htmlspecialchars($request->name);
+        $email = htmlspecialchars($request->email);
+        $phone = htmlspecialchars($request->phone);
+        $message = htmlspecialchars($request->message);
 
-        $contactdata = DB::table('contactus')->insert(['name' => $request->name, 'email' => $request->email, 'phone' => $request->phone, 'message' => $request->message]);
+        $contactdata = DB::table('contactus')->insert(['name' => $name, 'email' => $email, 'phone' => $phone, 'message' => $message]);
         if ($contactdata) {
             return redirect()->back()->with('success', 'Your Contact Message Submitted Successfully!');
         }

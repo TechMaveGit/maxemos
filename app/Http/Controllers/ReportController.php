@@ -677,58 +677,43 @@ class ReportController extends Controller
         return ['html' => $htmlStr, 'totalEMIAmount' => number_format($totalEMIAmount, 2)];
     }
 
-    public function quaturlyData()
-    {
+    public function quaturlyData() {
         $output = array();
-        $currentMonth = date("n");
-        for ($i = 0; $i <= 12; $i++) {
-            if ($currentMonth <= 1) {
-                $stime = date('1-3-Y');
-                $ss = 3;
-                $dend = date('m/Y', strtotime($stime));
-                $dstart = date('m-Y', strtotime("-" . $ss . " months", strtotime($stime)));
-
-                $output[] = $dstart . ' - ' . $dend;
-                $output[] = date('F Y', strtotime("-" . ($ss * 2) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 1) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
-                break;
-            } elseif ($currentMonth <= 4) {
-                $stime = date('1-4-Y');
-                $ss = 3;
-                $dend = date('F Y', strtotime('-1 months', strtotime($stime)));
-                $dstart = date('F Y', strtotime("-" . $ss . " months", strtotime($stime)));
-
-                $output[] = $dstart . ' - ' . $dend;
-                $output[] = date('F Y', strtotime("-" . ($ss * 2) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 1) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
-                break;
-            } elseif ($currentMonth <= 7) {
-                $stime = date('1-8-Y');
-                $ss = 3;
-                $dend = date('m/Y', strtotime($stime));
-                $dstart = date('m-Y', strtotime("-" . $ss . " months", strtotime($stime)));
-
-                $output[] = $dstart . ' - ' . $dend;
-                $output[] = date('F Y', strtotime("-" . ($ss * 2) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 1) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
-                break;
-            } elseif ($currentMonth <= 10) {
-                $stime = date('1-12-Y');
-                $ss = 3;
-                $dend = date('m/Y', strtotime($stime));
-                $dstart = date('m-Y', strtotime("-" . $ss . " months", strtotime($stime)));
-
-                $output[] = $dstart . ' - ' . $dend;
-                $output[] = date('F Y', strtotime("-" . ($ss * 2) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 1) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 3) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 4) . " months", strtotime($stime)));
-                $output[] = date('F Y', strtotime("-" . ($ss * 4) . " months", strtotime($stime))) . ' - ' . date('F Y', strtotime("-" . ($ss + 7) . " months", strtotime($stime)));
+        $currentMonth = date("n"); // Current month as a number (1-12)
+        $currentYear = date("Y"); // Current year
+    
+        // Define the quarter start months
+        $quarterStartMonths = [1, 4, 7, 10];
+    
+        // Find the current quarter start month and index
+        $currentQuarterIndex = null;
+        foreach ($quarterStartMonths as $index => $month) {
+            if ($currentMonth >= $month) {
+                $currentQuarterIndex = $index;
                 break;
             }
         }
-        return $output;
+    
+        // Generate the quarter date ranges in descending order
+        $quarters = [];
+        $year = $currentYear;
+        for ($i = 0; $i < 4; $i++) {
+            $quarterIndex = ($currentQuarterIndex - $i + 4) % 4;
+            $startMonth = $quarterStartMonths[$quarterIndex];
+            $endMonth = $quarterStartMonths[($quarterIndex + 1) % 4] - 1;
+            if ($endMonth == 0) {
+                $endMonth = 12;
+            }
+            $quarterYear = $year;
+            if ($i >= $currentQuarterIndex + 1) {
+                $quarterYear--;
+            }
+            $startDate = date("F Y", mktime(0, 0, 0, $startMonth, 1, $quarterYear));
+            $endDate = date("F Y", mktime(0, 0, 0, $endMonth, date("t", mktime(0, 0, 0, $endMonth, 1, $quarterYear)), $quarterYear));
+            $quarters[] = $startDate . " - " . $endDate;
+        }
+    
+        return $quarters;
     }
 
     public function accrudWorkingReports()
@@ -746,6 +731,7 @@ class ReportController extends Controller
             $rdata = explode('-', $request->quarterlyFilter);
             $startDate = date('Y-m-1', strtotime($rdata[0]));
             $endDate = date('Y-m-t', strtotime($rdata[1]));
+            $mon1tartDate = date('Y-m-1', strtotime('-3 month', strtotime($rdata[0])));
         }
 
         $loanType = $request->loanTypereportFilter;
@@ -753,14 +739,25 @@ class ReportController extends Controller
 
         $SUBQRY = '';
         if ($loanType && $loanType == '3') {
-            $SUBQRY .= " AND date(rawl.tenureDueDate) BETWEEN date('$startDate') AND date('$endDate')";
-            $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate,rawl.amount as netemiAmount,rawl.openingBalanceLatest,rawl.interestAmountPayble,categories.name AS cname,rawl.status,rawl.tenureDueDate AS t_date,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id=rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId=u.id LEFT JOIN categories ON categories.id=alh.loanCategory  WHERE u.id>0 AND rawl.txnType='out' AND rawl.openingBalanceLatest > 0  $SUBQRY  ORDER BY u.id DESC");
-        } elseif ($loanType && $loanType != '0') {
-            $SUBQRY = ' AND apply_loan_histories.loanCategory=' . $loanType;
-            $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,apply_loan_histories.rateOfInterest,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount,loan_emi_details.emiAmount,loan_emi_details.lateCharges AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND DATE(loan_emi_details.emiDate) BETWEEN '$startDate' AND '$endDate' $SUBQRY ORDER BY loan_emi_details.emiDate,users.customerCode DESC");
+            $SUBQRY .= " AND date(rawl.openingDate) <= date('$endDate')";
+            $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) <= date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
+            
+        } elseif ($loanType && $loanType == '8') {
+            $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN COALESCE( (SELECT MAX(transactionDate) FROM loan_emi_details WHERE loanId = alh.id AND status = 'success' AND emiAmount != 0 AND transactionDate IS NOT NULL AND DATE(transactionDate) <= '$endDate'), alh.disbursedDate, '$endDate' ) WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE(alh.disbursedDate, '$endDate') ELSE led.emiDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN led.status = 'success' AND  DATE(led.emiDate) <= '$endDate' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN led.balance - COALESCE( (SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0 ) ELSE alh.loanAmount - COALESCE( (SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0 ) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN ( SELECT * FROM loan_emi_details WHERE id IN ( SELECT MAX(id) FROM loan_emi_details WHERE status = 'success' AND transactionDate IS NOT NULL GROUP BY loanId ) ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = 8 AND ( DATE(alh.disbursedDate) <= '$endDate' OR ( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND ( (led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL) OR (alh.loanAmount - COALESCE((SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0) > 0) ) ) ) HAVING netemiAmount > 0 AND emiId IS NOT NULL AND (t_date BETWEEN '$mon1tartDate' AND '$endDate') ORDER BY alh.id DESC");
+
+           
+        }elseif ($loanType) {
+            $SUBQRY = ' AND alh.loanCategory=' . $loanType;
+            $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN COALESCE( ( SELECT MAX(transactionDate) FROM loan_emi_details WHERE loanId = alh.id AND status = 'success' AND emiAmount != 0 AND transactionDate IS NOT NULL AND DATE(transactionDate) <= '$endDate'), DATE_FORMAT(DATE_ADD(alh.disbursedDate, INTERVAL 1 MONTH), '%Y-%m-05'), '$endDate' ) WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE( DATE_FORMAT(DATE_ADD(alh.disbursedDate, INTERVAL 1 MONTH), '%Y-%m-05'), '$endDate' ) ELSE led.emiDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN led.status = 'success' AND DATE(led.emiDate) <= '$endDate' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN led.balance - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) ELSE alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN ( SELECT * FROM loan_emi_details WHERE id IN ( SELECT MAX(id) FROM loan_emi_details WHERE status = 'success' AND transactionDate IS NOT NULL GROUP BY loanId ) ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = $loanType AND ( DATE(alh.disbursedDate) <= '$endDate' OR ( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND ( ( led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL ) OR ( alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) > 0 ) ) ) ) HAVING netemiAmount > 0 AND emiId IS NOT NULL  ORDER BY alh.id DESC");
         } else {
-            $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,apply_loan_histories.rateOfInterest,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount,loan_emi_details.emiAmount,loan_emi_details.lateCharges AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND DATE(loan_emi_details.emiDate) BETWEEN '$startDate' AND '$endDate' $SUBQRY ORDER BY loan_emi_details.emiDate,users.customerCode DESC");
+            $SUBQRY .= " AND date(rawl.openingDate) BETWEEN date('$startDate') AND date('$endDate')";
+            $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) BETWEEN date('$startDate') AND date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
         }
+
+
+        
+        
+
 
         $rsr = 1;
         $totalAmount = 0;
@@ -795,6 +792,10 @@ class ReportController extends Controller
                 $interval = $datetime1->diff($datetime2);
                 $totalDays = $interval->days;
 
+                $roiwidth = ($row->rateOfInterest / 100) * $row->netemiAmount;
+
+                $interstCal = round(($roiwidth/365)*$totalDays,2);
+
                 $htmlStr .= '<tr>';
                 $htmlStr .= '<td>' . $rsr . '</td>';
                 $htmlStr .= '<td>' . $row->customerCode . '</td>';
@@ -804,15 +805,11 @@ class ReportController extends Controller
                  <td>' . ($sdate) . '</td>
                  <td>' . ($endDate) . '</td>
                  <td>' . ($row->rateOfInterest) . '</td>
-                 <td>' . ($totalDays) . '</td>';
-                $htmlStr .= '<td>' . number_format($row->netemiAmount, 2) . '</td>';
-                if ($loanType == '3') {
-                    $htmlStr .= '<td>' . ($row->interestAmountPayble) . '</td>';
-                    $totalINTERESTAmount += $row->interestAmountPayble;
-                } else {
-                    $htmlStr .= '<td>' . ($row->netemiAmount - $row->emiAmount) . '</td>';
-                    $totalINTERESTAmount += ($row->netemiAmount - $row->emiAmount);
-                }
+                 <td>' . ($totalDays) . '</td>
+                 <td>' . $row->netemiAmount . '</td>
+                 <td>' . ($interstCal) . '</td>';
+
+                $totalINTERESTAmount += $interstCal;
                 $totalAmount += $row->netemiAmount;
 
 
@@ -832,6 +829,8 @@ class ReportController extends Controller
         $htmlStr .= '</table>';
         return ['html' => $htmlStr, 'totalEMIAmount' => number_format($totalAmount, 2), 'totalINTERESTAmount' => number_format($totalINTERESTAmount, 2)];
     }
+
+    
 
 
     public function interestCalculator()

@@ -4,7 +4,7 @@
 
 <main >
     <div class="breadcrums_area breadcrums">
-        <div class="common_pagetitle">Next Month Emi Report</div>
+        <div class="common_pagetitle">Month Emi Report</div>
             
         <div class="flex items-center space-x-4  lg:py-6 breadcrum_right">
             <h2 class="text-xl font-medium text-slate-800 dark:text-navy-50 lg:text-2xl breadcrum_largetitle">
@@ -20,13 +20,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
                 </li>
-                <li>Next Month Emi Report</li>
+                <li>Month Emi Report</li>
             </ul>
         </div>
     </div>
 
     <div class="main_page_title">
-        <div class="common_pagetitlebig" style="width: 30%;">Next Month Emi Report</div>
+        <div class="common_pagetitlebig" style="width: 30%;">Month Emi Report</div>
         <div class="btns_rightimport" style="display: inline-flex">
             <div><strong>Total Amount : </strong><span id="totalEMIAmount" class="text-danger" style="font-weight: 700;"></span></div>
             
@@ -37,8 +37,24 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="row">
-                       
-                        <div class="col-lg-4">
+                       <div class="col-lg-3">
+                            <div class="form-group">
+                                <label class="block">
+                                    <span>Select Month</span>
+                                    <select id="selected_month" class="form-select mt-1.5 w-full rounded-full border border-slate-300 bg-white px-4 py-2 hover:border-slate-400 focus:border-primary dark:border-navy-450 dark:bg-navy-700 dark:hover:border-navy-400 dark:focus:border-accent">
+                                        @for ($i = 0; $i < 3; $i++)
+        @php
+            $month = date('m', strtotime("+$i months"));
+            $year = date('Y', strtotime("+$i months"));
+            $monthName = date('F', mktime(0, 0, 0, $month, 1));
+        @endphp
+        <option value="1-{{ $month }}-{{ $year }}">{{ $monthName }} {{ $year }}</option>
+    @endfor
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
                             <div class="form-group">
                                 <label class="block">
                                     <span>Loan Type</span>
@@ -111,11 +127,12 @@
     function filterPaymentReports()
     {
         var loanTypereportFilter = $('#loanTypereportFilter').val();
+        var selected_month = $('#selected_month').val();
 
         var currentUrl = $("#exportdatahref").attr('href');
         var url = new URL(currentUrl);
         url.searchParams.set("loanTypereportFilter", loanTypereportFilter);
-
+        url.searchParams.set("selected_month", selected_month);
         
 
         $("#exportdatahref").attr('href',url);
@@ -124,6 +141,7 @@
         $.post('{{route('filterNextMonthEmiReports')}}',{
             "_token": "{{ csrf_token() }}",
             loanTypereportFilter:loanTypereportFilter,
+            selected_month:selected_month
         },function (data){
             $('#mainTblHtml').html(data.html);
             $('#mainTbl').DataTable({

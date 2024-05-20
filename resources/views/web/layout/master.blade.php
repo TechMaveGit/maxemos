@@ -15,6 +15,8 @@
    <link rel="stylesheet" type="text/css" href="{{asset('assets/web')}}/asset/css/slick.css">
    <link rel="stylesheet" type="text/css" href="{{asset('assets/web')}}/asset/css/slick-theme.css">
 
+
+
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" type="text/css" href="{{asset('assets/web')}}/asset/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="{{asset('assets/web')}}/asset/css/fontawesome-all.min.css">
@@ -39,6 +41,7 @@
       <img src="{{asset('assets/web')}}/asset/img/logo/maxemo-logo.png" alt="">
       <p>Please hold, your KYC details is getting verify</p>
     </div>
+
 
    
 

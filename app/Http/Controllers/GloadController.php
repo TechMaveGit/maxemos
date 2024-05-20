@@ -13,9 +13,10 @@ class GloadController extends Controller
 {
     public function ocr_adhaar_verification($docType, $file_name = null)
     {
-        // if(config('app.env') != "production"){
-        //     return 0;
-        // }
+        
+         if(config('app.env') != "production"){
+             return 0;
+         }
         $newdocType = $docType;
         if ($docType == 4) {
             $newdocType = 1;
@@ -30,10 +31,15 @@ class GloadController extends Controller
             return (object)$array;
             die;
         }
+        // print_r($data->responseData); die;
+       
         $decrypted = json_decode(AesCipher::decrypt('India@2608', $data->responseData));
+        
+        
         $secretToken = $decrypted->msg->secretToken;
         $tsTransID = $decrypted->msg->tsTransID;
-
+        
+        
         $token = $this->step1('https://www.truthscreen.com/api/v2.2/idocr/tokenEncrypt', array('token' => $secretToken));
         $reqData = [];
         $fileType = '';
@@ -191,7 +197,7 @@ class GloadController extends Controller
 
     public static function pancard_verification($pancard)
     {
-
+        //dd('--'); 
         if (config('app.env') != "production") {
             return 0;
         }
@@ -209,7 +215,7 @@ class GloadController extends Controller
         $iv = AesCipher::getIV();
 
         $encrypted = AesCipher::encrypt('India@2608', $iv, '{"transID":"1234567","docType":2,"docNumber": "' . $pancard . '"}');
-
+        // return $encrypted;
         $data = <<<DATA
 		{
 		"requestData" : "$encrypted"
@@ -229,7 +235,7 @@ class GloadController extends Controller
 
         $decrypted = AesCipher::decrypt('India@2608', $res->responseData);
         $decrypted = json_decode($decrypted);
-        print_r($decrypted);
+        // print_r($decrypted);
         // dd()
 
         DB::table('apihits')->insert(['name' => 'truthscreen', 'type' => 'pancard_number', 'api_url' => 'https://www.truthscreen.com/api/v2.2/idsearch', 'request_data' => $data, 'respont_data' => json_encode($decrypted), 'status' => 1]);

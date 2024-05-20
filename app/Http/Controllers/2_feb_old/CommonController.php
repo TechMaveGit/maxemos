@@ -32,11 +32,7 @@ class CommonController extends Controller
     }
 
 
-    public function superAdminlogin(Request $request)
-    {
-        if (auth()->check() && auth()->user()->email != 'admin@gmail.com') {
-            Auth::logout();
-        }
+    public function superAdminlogin(Request $request){
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required',
@@ -44,27 +40,23 @@ class CommonController extends Controller
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-
-        if ($request->email != "admin@gmail.com") {
+    
+        if($request->email != "admin@gmail.com"){
             $validator->errors()->add('email', "Invalid Email Address.");
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
         $email = $request->email;
         $password = md5($request->password);
-        
         $userDtl = DB::select("SELECT u.* FROM users u  WHERE u.email='$email' AND u.password='$password' AND u.status=1");
-        // dd(count($userDtl));
         if (count($userDtl)) {
             $userId = $userDtl[0]->id;
             $loggedIn = Auth::loginUsingId($userId, true);
-            // dd($loggedIn);
             if ($loggedIn) {
                 $currentDateTime = date('Y-m-d H:i:s');
                 $ipAddress = AppServiceProvider::get_client_ip();
                 $accessLoginId = SystemAccessLog::insertGetId(['userId' => $userId, 'ipAddress' => $ipAddress, 'loginDateTime' => $currentDateTime, 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime]);
                 // session(['userPermissions' => $userDtl[0]->userRolePermissions, 'accessLoginId' => $accessLoginId]);
-                // dd('asdasd');
                 return redirect()->back();
             } else {
                 return redirect()->back()->with('Somthing Went Wrong');
@@ -285,7 +277,7 @@ class CommonController extends Controller
 
     public function equifaxReport(Request $request, $user_id)
     {
-        if ($request->loadreport == 1 || $request->type == "user") {
+        if($request->loadreport == 1 || $request->type == "user"){
             $userDatan = User::where('id', $user_id)->first();
             $error = 0;
             if ($userDatan->creditscore_apidata) {
@@ -293,13 +285,13 @@ class CommonController extends Controller
                 // $error = isset($userData['Error']) ? 1 : 0;
                 // dd($userData);
                 return view('pages.reports.equifax-report', compact('userData'));
-            } else {
+            }else{
                 $userData = $userDatan;
             }
         }
 
-        if ($request->loadreport == 2 || $request->type == "company") {
-            $companyData = DB::table('employment_histories')->where(['userId' => $user_id, 'status' => 'approved', 'companyType' => 'Pvt. Ltd.'])->first();
+        if($request->loadreport == 2 || $request->type == "company"){
+            $companyData = DB::table('employment_histories')->where(['userId'=>$user_id,'status'=>'approved','companyType'=>'Pvt. Ltd.'])->first();
             $error = 0;
             if ($companyData->company_creditscore_apidata) {
                 $userData = json_decode($companyData->company_creditscore_apidata, FALSE);
@@ -308,14 +300,14 @@ class CommonController extends Controller
             }
         }
 
-        if ($request->loadreport == 3 || $request->type == "company") {
-            $partner = LoanKycOtherPendetail::where(['userId' => $user_id])->first();
+        if($request->loadreport == 3 || $request->type == "company"){
+            $partner = LoanKycOtherPendetail::where(['userId'=>$user_id])->first();
             $error = 0;
             if ($partner->creditscore_apidata) {
                 $userData = json_decode($partner->creditscore_apidata, FALSE);
                 // $error = isset($userData['Error']) ? 1 : 0;
                 return view('pages.reports.equifax-report', compact('userData'));
-            } else {
+            }else{
                 $userData = $partner;
             }
         }
@@ -340,7 +332,7 @@ class CommonController extends Controller
                     $customerdata['gender'] = 'O';
                 }
                 $customerdata['fatherName'] = $userData->fatherName;
-                if ($request->loadreport == 1) {
+                if($request->loadreport == 1){
                     if (!$customerdata['dateOfBirth']) {
                         return redirect()->back()->with('error', 'Please Fill Customer Date Of Birth');
                     } elseif (!$customerdata['state']) {
@@ -349,7 +341,7 @@ class CommonController extends Controller
                     } elseif (!$customerdata['pancard_no']) {
                         return redirect()->back()->with('error', 'Please Fill Customer Pancard Number');
                     }
-                } else if ($request->loadreport == 3) {
+                }else if($request->loadreport == 3){
                     if (!$customerdata['dateOfBirth']) {
                         return redirect()->back()->with('error', 'Please Fill Partner Date Of Birth');
                     } elseif (!$customerdata['state']) {
@@ -359,7 +351,7 @@ class CommonController extends Controller
                         return redirect()->back()->with('error', 'Please Fill Partner Pancard Number');
                     }
                 }
-            } elseif ($request->loadreport == 2) {
+            }elseif ($request->loadreport == 2) {
                 $customerdata = array();
                 $customerdata['name'] = $companyData->employerName;
                 $customerdata['addressLine1'] = $companyData->address ?? '';
@@ -369,7 +361,7 @@ class CommonController extends Controller
                 $customerdata['mobile'] = $companyData->mobileNo ?? auth()->user()->mobile;
                 $customerdata['email'] = $companyData->emailId ?? auth()->user()->email;
                 $customerdata['pancard_no'] = $companyData->companyPan;
-
+                
                 $customerdata['fatherName'] = $companyData->fatherName;
                 if (!$customerdata['dateOfBirth']) {
                     return redirect()->back()->with('error', 'Please Fill Customer Date Of Birth');
@@ -379,6 +371,7 @@ class CommonController extends Controller
                 } elseif (!$customerdata['pancard_no']) {
                     return redirect()->back()->with('error', 'Please Fill Customer Pancard Number');
                 }
+
             }
             $lobObj = new GloadController();
             // dd($customerdata);
@@ -397,23 +390,23 @@ class CommonController extends Controller
 
                 if ($request->loadreport == 1) {
                     User::where('id', $user_id)->update(['credit_score' => $score, 'creditscore_apidata' => json_encode($equifaxData)]);
-                } elseif ($request->loadreport == 2) {
-                    EmploymentHistory::where(['userId' => $user_id, 'status' => 'approved', 'companyType' => 'Pvt. Ltd.'])->update(['credit_score' => $score, 'creditscore_apidata' => json_encode($equifaxData)]);
-                } elseif ($request->loadreport == 3) {
+                }elseif($request->loadreport == 2){
+                    EmploymentHistory::where(['userId'=>$user_id,'status'=>'approved','companyType'=>'Pvt. Ltd.'])->update(['credit_score' => $score, 'creditscore_apidata' => json_encode($equifaxData)]);
+                }elseif($request->loadreport == 3){
                     LoanKycOtherPendetail::where('id', $user_id)->update(['credit_score' => $score, 'creditscore_apidata' => json_encode($equifaxData)]);
                 }
-                $userData = json_decode(json_encode($equifaxData), FALSE);
+                $userData = json_decode(json_encode($equifaxData),FALSE);
 
                 return view('pages.reports.equifax-report', compact('userData'));
             }
         }
         if ($userData && $userData->creditscore_apidata && $userData->credit_score > 0) {
             $userDatan = User::where('id', $user_id)->first();
-            $userData = json_decode($userDatan->creditscore_apidata, FALSE);
+            $userData = json_decode($userDatan->creditscore_apidata,FALSE);
             return view('pages.reports.equifax-report', compact('userData'));
-        } elseif (isset($companyData) && $companyData->company_creditscore_apidata && $companyData->company_credit_score > 0) {
-            $companyData = DB::table('employment_histories')->where(['userId' => $user_id, 'status' => 'approved', 'companyType' => 'Pvt. Ltd.'])->first();
-            $userData = json_decode($companyData->company_creditscore_apidata, FALSE);
+        }elseif(isset($companyData) && $companyData->company_creditscore_apidata && $companyData->company_credit_score > 0){
+            $companyData = DB::table('employment_histories')->where(['userId'=>$user_id,'status'=>'approved','companyType'=>'Pvt. Ltd.'])->first();
+            $userData = json_decode($companyData->company_creditscore_apidata,FALSE);
             return view('pages.reports.equifax-report', compact('userData'));
         } else {
             return redirect()->back();
@@ -703,7 +696,6 @@ class CommonController extends Controller
         $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : '';
 
         $pageName = $request->pageName;
-        $loanType = $request->loanType??null;
 
         //        over-due-payments
         //        received-payments
@@ -713,7 +705,7 @@ class CommonController extends Controller
         } elseif ($pageName == 'raw-over-due-payments') {
             $HTML = $this->getRawOverDueReport($pageName, $fromDate, $toDate);
         } else {
-            $HTML = $this->getEmiStatusReportByType($pageName, $fromDate, $toDate,$loanType);
+            $HTML = $this->getEmiStatusReportByType($pageName, $fromDate, $toDate);
         }
 
 
@@ -735,16 +727,11 @@ class CommonController extends Controller
         // }
 
         $SUBQRY = '';
-        if ($fromDate && $toDate) {
+        if ($fromDate) {
             $SUBQRY .= " AND date(rawl.tenureDueDate) BETWEEN date('$fromDate') AND date('$toDate')";
-        } elseif ($fromDate) {
-            $SUBQRY .= " AND date(rawl.tenureDueDate) >= date('$fromDate')";
-        } elseif ($toDate) {
-            $SUBQRY .= " AND date(rawl.tenureDueDate) <= date('$toDate')";
         } else {
-            $SUBQRY .= " AND date(rawl.tenureDueDate) <= date('$today')";
+            $SUBQRY .= " AND date(rawl.tenureDueDate) < date('$today')";
         }
-        
 
         if ($pageName == 'raw-over-due-payments') {
             $SUBQRY .= " AND rawl.status ='success' ";
@@ -768,12 +755,10 @@ class CommonController extends Controller
                       <th>Over Due Date</th>';
 
         $htmlStr .= '</tr></thead>';
-        $totalOveDueEmi = 0;
         if (count($results)) {
             $htmlStr .= '<tbody>';
             $rsr = 1;
             foreach ($results as $row) {
-                $totalOveDueEmi += $row->amount;
 
                 $openingDate = (strtotime($row->openingDate)) ? date('d m,Y', strtotime($row->openingDate)) : '';
                 $tenureDueDate = (strtotime($row->tenureDueDate)) ? date('d m,Y', strtotime($row->tenureDueDate)) : '';
@@ -802,11 +787,11 @@ class CommonController extends Controller
             }
             $htmlStr .= '</tbody>';
         }
-        $htmlStr .= '</table><span hidden id="overDueAmountHidden">' . number_format($totalOveDueEmi, 2) . '</span>';
+        $htmlStr .= '</table>';
         return $htmlStr;
     }
 
-    public function getEmiStatusReportByType($pageName, $fromDate, $toDate,$loanType=null)
+    public function getEmiStatusReportByType($pageName, $fromDate, $toDate)
     {
 
         $month = (strtotime($fromDate)) ? date('m', strtotime($fromDate)) : date('m');
@@ -823,18 +808,9 @@ class CommonController extends Controller
 
         $SUBQRY = '';
         if ($pageName == 'over-due-payments') {
-            if ($fromDate && $toDate) {
-                $SUBQRY .= " AND date(led.emiDueDate) BETWEEN date('$fromDate') AND date('$toDate') AND led.status='pending'";
-            } elseif ($fromDate) {
-                $SUBQRY .= " AND date(led.emiDueDate) >= date('$fromDate') AND led.status='pending'";
-            } elseif ($toDate) {
-                $SUBQRY .= " AND date(led.emiDueDate) <= date('$toDate') AND led.status='pending'";
-            } else {
-                $SUBQRY .= " AND date(led.emiDueDate) <= date('$today') AND  led.status='pending'";
-            }
-            if($loanType){
-                $SUBQRY .= " AND alh.loanCategory=$loanType";
-            }
+            $SUBQRY .= " AND date(led.emiDueDate)<date('$lateDueEmi') AND led.status='pending'";
+
+            // $SUBQRY .= " AND MONTH(led.emiDate)='$month' AND YEAR(led.emiDate)='$year' AND date(led.emiDate)<'$today' AND led.status='pending'";
         }
 
         if ($pageName == 'received-payments') {
@@ -844,24 +820,18 @@ class CommonController extends Controller
         // echo "SELECT u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,alh.loanAmount appliedLoanAmount,alh.tenure as appliedTenureId,alh.approvedTenure as approvedTenureId,alh.rateOfInterest as givenROI,alh.approvedAmount,alh.approvedAmount,alh.status as loanStatus,alh.disbursedDate,alh.remark,led.emiAmount,led.emiDate,led.emiDueDate,led.status,led.transactionId,led.payment_mode,led.transactionDate,led.lateCharges FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id LEFT JOIN loan_emi_details led ON alh.id=led.loanId WHERE u.id>0 $SUBQRY ORDER BY alh.id DESC";
 
 
-        $results = DB::select("SELECT u.id as userId,u.customerCode,categories.name AS cname,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,alh.loanAmount appliedLoanAmount,alh.tenure as appliedTenureId,alh.approvedTenure as approvedTenureId,alh.rateOfInterest as givenROI,alh.approvedAmount,alh.approvedAmount,alh.status as loanStatus,alh.disbursedDate,alh.remark,alh.loanCategory,led.emiAmount,led.emiDate,led.emiDueDate,led.status,led.transactionId,led.payment_mode,led.transactionDate,led.lateCharges FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id LEFT JOIN loan_emi_details led ON alh.id=led.loanId LEFT JOIN categories ON categories.id=alh.loanCategory WHERE u.id>0 $SUBQRY ORDER BY alh.id DESC");
+        $results = DB::select("SELECT u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,alh.loanAmount appliedLoanAmount,alh.tenure as appliedTenureId,alh.approvedTenure as approvedTenureId,alh.rateOfInterest as givenROI,alh.approvedAmount,alh.approvedAmount,alh.status as loanStatus,alh.disbursedDate,alh.remark,led.emiAmount,led.emiDate,led.emiDueDate,led.status,led.transactionId,led.payment_mode,led.transactionDate,led.lateCharges FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id LEFT JOIN loan_emi_details led ON alh.id=led.loanId WHERE u.id>0 $SUBQRY ORDER BY alh.id DESC");
         $htmlStr = '<table id="mainTbl" class="table table-bordered">
                   <thead>
                   <tr>
                       <th>Sr. No.</th>
-                      <th>Customer Code</th>';
-        if ($pageName == 'over-due-payments') {
-            $htmlStr .=  '<th>Loan Type</th>';
-        }
-        $htmlStr .=     '<th>Customer Name</th>
+                      <th>Customer Code</th>
+                      <th>Customer Name</th>
                       <th>Customer Email</th>
                       <th>Customer Mobile</th>
                       <th>EMI Amount</th>
                       <th>EMI Date</th>
                       <th>EMI Due Date</th>';
-        if ($pageName == 'over-due-payments') {
-            $htmlStr .= '<th>Due Days</th>';
-        }
         if ($pageName == 'received-payments') {
             $htmlStr .= '<th>Transaction Id</th>
                       <th>Payment Mode</th>';
@@ -869,47 +839,30 @@ class CommonController extends Controller
         if ($pageName != 'over-due-payments') {
             $htmlStr .=  '<th>Late Charges</th>';
         }
-
         if ($pageName == 'received-payments') {
             $htmlStr .=  '<th>Payment Status</th>
                       <th>Transaction Date</th>';
         }
         $htmlStr .= '</tr></thead>';
-        $totalOveDueEmi = 0;
         if (count($results)) {
             $htmlStr .= '<tbody>';
             $rsr = 1;
             foreach ($results as $row) {
-                $totaldays =0;
-                if($pageName == 'over-due-payments'){
-                    $now = strtotime($today);
-                    $your_date = strtotime($row->emiDueDate);
-                    $datediff = $now - $your_date;
-                    $totaldays = abs(round($datediff / (60 * 60 * 24)));
-                }
 
-                $totalOveDueEmi += $row->emiAmount;
-
-                $transactionDate = (strtotime($row->transactionDate)) ? date('d/m/Y', strtotime($row->transactionDate)) : '';
-                $emiDate = (strtotime($row->emiDate)) ? date('d/m/Y', strtotime($row->emiDate)) : '';
-                $emiDueDate = (strtotime($row->emiDueDate)) ? date('d/m/Y', strtotime($row->emiDueDate)) : '';
+                $transactionDate = (strtotime($row->transactionDate)) ? date('d m,Y', strtotime($row->transactionDate)) : '';
+                $emiDate = (strtotime($row->emiDate)) ? date('d m,Y', strtotime($row->emiDate)) : '';
+                $emiDueDate = (strtotime($row->emiDueDate)) ? date('d m,Y', strtotime($row->emiDueDate)) : '';
 
 
                 $htmlStr .= '<tr>';
                 $htmlStr .= '<td>' . $rsr . '</td>';
                 $htmlStr .= '<td>' . $row->customerCode . '</td>';
-                if ($pageName == 'over-due-payments') {
-                    $htmlStr .=  '<td>' . $row->cname . '</td>';
-                }
                 $htmlStr .= '<td>' . $row->name . '</td>';
                 $htmlStr .= '<td>' . $row->email . '</td>';
                 $htmlStr .= '<td>' . $row->mobile . '</td>';
                 $htmlStr .= '<td>' . $row->emiAmount . '</td>';
                 $htmlStr .= '<td>' . $emiDate . '</td>';
                 $htmlStr .= '<td>' . $emiDueDate . '</td>';
-                if ($pageName == 'over-due-payments') {
-                    $htmlStr .=  '<td>' . $totaldays . '</td>';
-                }
                 if ($pageName == 'received-payments') {
                     $htmlStr .= '<td>' . $row->transactionId . '</td>';
                     $htmlStr .= '<td>' . ucwords($row->payment_mode) . '</td>';
@@ -917,7 +870,6 @@ class CommonController extends Controller
                 if ($pageName != 'over-due-payments') {
                     $htmlStr .= '<td>' . $row->lateCharges . '</td>';
                 }
-
                 if ($pageName == 'received-payments') {
                     $htmlStr .= '<td>' . ucfirst($row->status) . '</td>';
                     $htmlStr .= '<td>' . $transactionDate . '</td>';
@@ -926,10 +878,8 @@ class CommonController extends Controller
                 $rsr++;
             }
             $htmlStr .= '</tbody>';
-            
         }
-
-        $htmlStr .= '</table><span hidden id="overDueAmountHidden">' . number_format($totalOveDueEmi, 2) . '</span>';
+        $htmlStr .= '</table>';
         return $htmlStr;
     }
 
@@ -1298,7 +1248,7 @@ class CommonController extends Controller
         // if ($year % 4 == 0) {
         //     $oneYearDays = 366;
         // } else {
-        $oneYearDays = 365;
+            $oneYearDays = 365;
         // }
 
         $oneYearInterest = ($balance * $roi) / 100;
@@ -1311,9 +1261,9 @@ class CommonController extends Controller
         if ($currentDayOfMonth == 4 || $currentDayOfMonth == 5) {
             $extraNumDays = 0;
         } elseif ($currentDayOfMonth < 4) {
-            $extraNumDays = 5 - $currentDayOfMonth;
+            $extraNumDays = 4 - $currentDayOfMonth;
         } else {
-            $lastDateOfStartDate = date('Y-m-d', strtotime($lastDateOfStartDate . '+5days'));
+            $lastDateOfStartDate = date('Y-m-d', strtotime($lastDateOfStartDate . '+4days'));
             $extraNumDays = $this->getNumOfDaysBetween2Dates($interestStartDate, $lastDateOfStartDate);
             // $interestStartDate = date('Y-m-d',strtotime($interestStartDate.'+1 month'));
         }
@@ -1336,7 +1286,7 @@ class CommonController extends Controller
             // if ($nextMonthYear % 4 == 0) {
             //     $oneYearDays = 366;
             // } else {
-            $oneYearDays = 365;
+                $oneYearDays = 365;
             // }
             $oneDayInterest = $oneYearInterest / $oneYearDays;
 

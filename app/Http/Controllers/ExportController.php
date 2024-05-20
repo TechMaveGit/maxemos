@@ -718,39 +718,42 @@ class ExportController extends Controller
                 $rdata = explode('-',$request->quarterlyFilter) ;
                 $startDate = date('Y-m-1',strtotime($rdata[0]));
                 $endDate = date('Y-m-t', strtotime($rdata[1]));
+                $mon1tartDate = date('Y-m-1', strtotime('-1 month', strtotime($rdata[0])));
             }
     
             $loanType = $request->loanTypereportFilter;
            
     
             $SUBQRY = '';
-            if($loanType && $loanType == '3'){
-                $SUBQRY .= " AND date(rawl.tenureDueDate) BETWEEN date('$startDate') AND date('$endDate')";
-                $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate,rawl.amount as netemiAmount,rawl.openingBalanceLatest,rawl.interestAmountPayble,categories.name AS cname,rawl.status,rawl.tenureDueDate AS t_date,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id=rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId=u.id LEFT JOIN categories ON categories.id=alh.loanCategory  WHERE u.id>0 AND rawl.txnType='out' AND rawl.openingBalanceLatest > 0  $SUBQRY  ORDER BY u.id DESC");
-            }elseif ($loanType && $loanType != '0') {
-                $SUBQRY = ' AND apply_loan_histories.loanCategory=' . $loanType;
-                $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,apply_loan_histories.rateOfInterest,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount,loan_emi_details.emiAmount,loan_emi_details.lateCharges AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND DATE(loan_emi_details.emiDate) BETWEEN '$startDate' AND '$endDate' $SUBQRY ORDER BY loan_emi_details.emiDate,users.customerCode DESC");
-            }else{
-                $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,apply_loan_histories.rateOfInterest,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount,loan_emi_details.emiAmount,loan_emi_details.lateCharges AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND DATE(loan_emi_details.emiDate) BETWEEN '$startDate' AND '$endDate' $SUBQRY ORDER BY loan_emi_details.emiDate,users.customerCode DESC");
-    
-            }
+        if ($loanType && $loanType == '3') {
+            $SUBQRY .= " AND date(rawl.openingDate) BETWEEN date('$startDate') AND date('$endDate')";
+            $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) BETWEEN date('$startDate') AND date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
+        } elseif ($loanType && $loanType == '8') {
+            $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN COALESCE( (SELECT MAX(transactionDate) FROM loan_emi_details WHERE loanId = alh.id AND status = 'success' AND emiAmount != 0 AND transactionDate IS NOT NULL AND DATE(transactionDate) <= '$endDate'), alh.disbursedDate, '$endDate' ) WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE(alh.disbursedDate, '$endDate') ELSE led.emiDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN led.balance - COALESCE( (SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0 ) ELSE alh.loanAmount - COALESCE( (SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0 ) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN ( SELECT * FROM loan_emi_details WHERE id IN ( SELECT MAX(id) FROM loan_emi_details WHERE status = 'success' AND transactionDate IS NOT NULL GROUP BY loanId ) ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = 8 AND ( DATE(alh.disbursedDate) <= '$endDate' OR ( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND ( (led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL) OR (alh.loanAmount - COALESCE((SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0) > 0) ) ) ) HAVING netemiAmount != 0 AND emiId IS NOT NULL AND (t_date BETWEEN '$mon1tartDate' AND '$endDate') ORDER BY alh.id DESC");
+        }elseif ($loanType) {
+            $SUBQRY = ' AND alh.loanCategory=' . $loanType;
+            $results = DB::select("SELECT alh.id,alh.loanCategory,alh.approvedAmount,alh.rateOfInterest,led.emiId,led.emiDate AS t_date,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,alh.loanAmount - (SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= DATE('$endDate')) AS netemiAmount FROM (SELECT MAX(id) AS max_id FROM loan_emi_details WHERE DATE(transactionDate) <= DATE('$endDate') AND DATE(emiDate) <= DATE('$endDate') GROUP BY loanId) AS max_ids JOIN loan_emi_details AS led ON led.id = max_ids.max_id LEFT JOIN apply_loan_histories AS alh ON alh.id = led.loanId LEFT JOIN users ON users.id = led.userId LEFT JOIN categories ON categories.id = alh.loanCategory WHERE 1 $SUBQRY GROUP BY led.loanId HAVING netemiAmount > 0 ORDER BY led.loanId DESC");
+        } else {
+            $SUBQRY .= " AND date(rawl.openingDate) BETWEEN date('$startDate') AND date('$endDate')";
+            $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) BETWEEN date('$startDate') AND date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
+        }
+
             
 
             if (count($results)) {
                 foreach ($results as $k=>$row) {
                     $sdate = date('Y-m-d', strtotime($row->t_date));
+
+                $datetime1 = new DateTime($sdate);
+                $datetime2 = new DateTime($endDate);
+                $interval = $datetime1->diff($datetime2);
+                $totalDays = $interval->days;
+
+                $roiwidth = ($row->rateOfInterest / 100) * $row->netemiAmount;
+
+                $interstCal = round(($roiwidth/365)*$totalDays,2);
     
-                    $datetime1 = new DateTime($sdate);
-                    $datetime2 = new DateTime($endDate);
-                    $interval = $datetime1->diff($datetime2);
-                    $totalDays = $interval->days;
-    
-                    $tdataInterst = ($row->netemiAmount - $row->emiAmount);
-                    if($loanType == '3'){
-                        $tdataInterst =  ($row->interestAmountPayble);
-                    }
-    
-                    $content .= ($k + 1) . ',' . $row->customerCode . ',' . $row->name . ',' .  'LF0' . $row->id . ','  .  $row->cname. ','  .  $sdate. ','  .  $endDate . ',' . $row->rateOfInterest . ',' . $totalDays . ',' . $row->netemiAmount. ',' . $tdataInterst . "\r\n";
+                    $content .= ($k + 1) . ',' . $row->customerCode . ',' . $row->name . ',' .  'LF0' . $row->id . ','  .  $row->cname. ','  .  $sdate. ','  .  $endDate . ',' . $row->rateOfInterest . ',' . $totalDays . ',' . $row->netemiAmount. ',' . $interstCal . "\r\n";
                     
                 }
             }

@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Contracts\Http\Kernel;
@@ -31,8 +32,8 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 |
 */
 
-
 require __DIR__.'/../vendor/autoload.php';
+
 /*
 |--------------------------------------------------------------------------
 | Run The Application
@@ -44,17 +45,13 @@ require __DIR__.'/../vendor/autoload.php';
 |
 */
 
-try {
-    $app = require_once __DIR__.'/../bootstrap/app.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
 
-    $kernel = $app->make(Kernel::class);
+$kernel = $app->make(Kernel::class);
 
-    $response = $kernel->handle(
-        $request = Request::capture()
-    )->send();
+$response = $kernel->handle(
+    $request = Request::capture()
+)->send();
 
-    $kernel->terminate($request, $response);
-} catch (\Exception $e) {
-    echo "Exception: " . $e->getMessage();
-    // You can also log the exception for further analysis
-}
+$kernel->terminate($request, $response);
+

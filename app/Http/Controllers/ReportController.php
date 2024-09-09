@@ -114,188 +114,247 @@ class ReportController extends Controller
         return view('pages.loan-management.to-be-disburse', compact('pageTitle', 'pageNameStr'));
     }
 
-
-    public function rawPendingFileReports(){
-        return view('pages.reports.raw-pending-file');
+    public function todayRawDisbursements()
+    {
+        return view('pages.reports.raw-disbursement-today');
     }
 
-    public function filterRawPendingFileReport(Request $request){
-        try{
+
+    public function filterTodayRawDisbursements(Request $request)
+    {
+        try {
             $fromDate = (strtotime($request->fromDate)) ? date('Y-m-d', strtotime($request->fromDate)) : null;
             $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : null;
-    
+
             $SUBQRY = '';
-            
-            if ($request->kycStatus && $request->kycStatus != '0') {
-                $SUBQRY .= " AND u.kycStatus='$request->kycStatus'";
-            }
-            if ($request->businessStatus && $request->businessStatus != '0') {
-                $SUBQRY .= " AND eh.status='$request->businessStatus'";
-            }
-            
+
+
             if ($fromDate != "" && $toDate != "") {
-                $SUBQRY .= " AND date(u.created_at)>='$fromDate' AND date(u.created_at)<='$toDate'";
-            }else{
-                $fromDate = Carbon::now()->subDays(7)->startOfDay();
+                $SUBQRY .= " AND date(rmc.transactionDate)>='$fromDate' AND date(rmc.transactionDate)<='$toDate'";
+            } else {
+                $fromDate = Carbon::now()->subDays(1)->startOfDay();
                 $toDate = Carbon::now()->endOfDay();
-                $SUBQRY .= " AND date(u.created_at)>='$fromDate' AND date(u.created_at)<='$toDate'";
+                $SUBQRY .= " AND date(rmc.transactionDate)>='$fromDate' AND date(rmc.transactionDate)<='$toDate'";
             }
-    
-            $customers = DB::select("SELECT DISTINCT u.*,c.name as loanCategoryD,alh.id as loanId,alh.isAdminApproved,alh.reject_reason,eh.id as employmentHistoryId,alh.status as loanStatus,eh.status as employmentStatus FROM users u LEFT JOIN  apply_loan_histories alh ON u.id=alh.userId LEFT JOIN employment_histories eh ON u.id=eh.userId LEFT JOIN categories c ON alh.loanCategory=c.id WHERE u.userType='user' $SUBQRY ORDER BY u.id desc");
-            $totalCust = count($customers??[])??0;
-    
+
+
+
+            $pendingFiles = DB::select("SELECT rmc.*,us.customerCode,us.name as uname,us.email as uemail,us.mobile as umobile,t.name as tenureName FROM raw_materials_txn_details rmc left join users us on us.id=rmc.userId left join tenures t on rmc.approvedTenure=t.id WHERE rmc.txnType='out' AND rmc.status='success' $SUBQRY ORDER BY rmc.transactionDate DESC");
+
+
             $TBLLTHCLS = 'whitespace-nowrap rounded-tl-lg bg-slate-200 px-4 py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5';
-            $htmlStr = '<table class="is-hoverable w-full text-left dataTable no-footer overflow-x-auto">
+            $htmlStr = '<table  class="is-hoverableable w-full text-left dataTable no-footer overflow-x-auto">
                 <thead>
                       <tr>
-                            <th class="' . $TBLLTHCLS . '">Profile</th>
-                            <th class="' . $TBLLTHCLS . '">Cust. ID</th>
+                            <th class="' . $TBLLTHCLS . '">Loan ID</th>
+                            <th class="' . $TBLLTHCLS . '">Amount</th>
+                            <th class="' . $TBLLTHCLS . '">Customer Code</th>
                             <th class="' . $TBLLTHCLS . '">Name</th>
                             <th class="' . $TBLLTHCLS . '">Email</th>
-                            <th class="' . $TBLLTHCLS . '">Mobile No.</th>';
-           
-                $htmlStr .= '<th class="' . $TBLLTHCLS . '">Loan Type</th>';
-            
-            $htmlStr .= '<th class="' . $TBLLTHCLS . '">Date</th>';
-            
-                $htmlStr .= '<th class="' . $TBLLTHCLS . '">KYC Status</th>';
-                $htmlStr .= '<th class="' . $TBLLTHCLS . '">Business Status</th>';
-            
-            $htmlStr .= '<th class="' . $TBLLTHCLS . '">Admin Approve</th>';
-            $htmlStr .= '<th class="' . $TBLLTHCLS . '">Status</th>
+                            <th class="' . $TBLLTHCLS . '">Mobile No.</th>
+                            <th class="' . $TBLLTHCLS . '">Transaction Date</th>
+                            <th class="' . $TBLLTHCLS . '">Tenure</th>
+                            <th class="' . $TBLLTHCLS . '">Status</th>
+                            <th class="' . $TBLLTHCLS . '">Invoice No.</th>
+                            <th class="' . $TBLLTHCLS . '">Draw Down</th>
+                            <th class="' . $TBLLTHCLS . '">Customer UTR</th>
                             <th class="' . $TBLLTHCLS . '">Action</th>
                       </tr>
                 </thead>
                 <tbody>';
-            if (count($customers)) {
-                foreach ($customers as $crow) {
-    
-                    if($crow->isAdminApproved == 'approved'){
-                        $isadminApprove = '<span class="badge bg-success">Approved</span>';
-                    }else if($crow->isAdminApproved == 'rejected'){
-                        $isadminApprove = '<span data-bs-toggle="tooltip" data-bs-placement="top" onclick="alert(\'Rejected Reason : '.$crow->reject_reason.'\')" class="badge bg-danger">Rejected</span>';
-                    }else if($crow->isAdminApproved == 'need update'){
-                        $isadminApprove = '<span data-bs-toggle="tooltip" data-bs-placement="top" onclick="alert(\'Need Update : '.$crow->reject_reason.'\')" class="badge bg-warning">Need Update</span>';
-                    }else{
-                        $isadminApprove = '<span class="badge bg-info">Pending</span>';
-                    }
-    
-                    if ($crow->profilePic) {
-                        $profilePic = env('APP_URL') . 'public/' . $crow->profilePic;
-                    } else {
-                        $profilePic = 'https://media.istockphoto.com/vectors/male-face-silhouette-or-icon-man-avatar-profile-unknown-or-anonymous-vector-id1087531642?k=20&m=1087531642&s=612x612&w=0&h=D6OBNUY7ZxQTAHNVtL9mm2wbHb_dP6ogIsCCWCqiYQg=';
-                    }
-                    $createdDate = (strtotime($crow->created_at)) ? date('d/m/Y', strtotime($crow->created_at)) : '';
+
+            if (count($pendingFiles)) {
+                foreach ($pendingFiles as $crow) {
+                    $transactionDate = $crow->transactionDate ? date('d M, Y', strtotime($crow->transactionDate)) : '';
+                    $debitStatus = strtoupper($crow->status);
+
                     $htmlStr .= ' <tr>
-    
-                                    <td class="">
-                                        <div class="avatar flex h-10 w-10">
-                                            <img class="mask is-squircle" src="' . $profilePic . '" style="height: 50px;width: 50px;object-fit: contain;" alt="image">
-                                        </div>
-                                    </td>
+                                    <td>LF0' . $crow->loanId . '</td>         
+                                    <td>' . number_format($crow->amount, 2) . '</td>
                                     <td>' . $crow->customerCode . '</td>                                
-                                    <td>' . $crow->name . '</td>
-                                    <td>' . $crow->email . '</td>
-                                    <td>' . $crow->mobile . '</td>
-                                    <td>' . $crow->loanCategoryD . '</td>
-                                    <td>' . $createdDate . '</td>';
-                    
-                        if ($crow->kycStatus == 'approved') {
-                            $htmlStr .= '<td><span class="badge badge-success-light">Approved</span></td>';
-                        } else if ($crow->kycStatus == 'rejected') {
-                            $htmlStr .= '<td><span style="background-color: #f44;" class="badge badge-danger-light">Rejected</span></td>';
-                        } else {
-                            $htmlStr .= '<td><span class="badge badge-warning-light">Pending</span></td>';
+                                    <td>' . $crow->uname . '</td>
+                                    <td>' . $crow->uemail . '</td>
+                                    <td>' . $crow->umobile . '</td>
+                                     <td>' . $transactionDate . '</td>
+                                     <td>' . $crow->tenureName . '</td>
+                                     <td>' . $debitStatus . '</td>';
+                    $invNumber = ($crow->invoiceNumber) ? $crow->invoiceNumber : null;
+                    if ($invNumber) {
+                        $isInvoiceFile = 'No File';
+                        if ($crow->invoiceFile && $crow->invoiceFile != '') {
+                            $isInvoiceFile = 'File Exist';
                         }
-                    
-                    
-                        if ($crow->employmentStatus == 'approved') {
-                            $htmlStr .= '<td><span class="badge badge-success-light">Approved</span></td>';
-                        } else if ($crow->employmentStatus == 'rejected') {
-                            $htmlStr .= '<td><span style="background-color: #f44;" class="badge badge-danger-light">Rejected</span></td>';
-                        } else {
-                            $htmlStr .= '<td><span class="badge badge-warning-light">Pending</span></td>';
-                        }
-                    
-    
-                        $htmlStr .= '<td>'.$isadminApprove.'</td>';
-                    
-                    $htmlStr .= '<td>';
-    
-    
-                    if ($crow->status == 1) {
-                        $htmlStr .= '<span class="badge badge-success-light">Active</span>';
-                    } else if ($crow->status == 2) {
-                        $htmlStr .= '<span class="badge badge-danger">Rejected</span>';
+                        $htmlStr .= '<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="' . $crow->invoiceNumber . '" data-invoiceFile="' . $crow->invoiceFile . '" data-drawDownFormFile="' . $crow->drawDownFormFile . '" data-utrName="' . $crow->utr_name . '" data-utrFile="' . $crow->utr_file . '" id="rawFile' . $crow->id . '" onclick="openInvFiles(' . $crow->id . ');" >' . $invNumber . ' (' . $isInvoiceFile . ')</a></td>';
                     } else {
-                        $htmlStr .= '<span class="badge badge-danger">Deactive</span>';
+                        $htmlStr .= '<td>-</td>';
                     }
-    
-                    $buttons = '<a href="' . route('profileDetails', ['all-customers-list', $crow->id]) . '" class="btn h-8 w-8 p-0 text-info hover:bg-info/20 focus:bg-info/20 active:bg-info/25" data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="View" aria-label="View"><i data-feather="eye" class="fa fa-eye text-primary"></i></a>';
-                    $buttons .= '<button type="button" onclick="editCustomerProfile(' . $crow->id . ');" class="btn h-8 w-8 p-0 text-info hover:bg-info/20 focus:bg-info/20 active:bg-info/25">
-                        <i class="fa fa-edit"></i>
-                    </button>';
-                    $buttons .= '<button type="button" onclick="editCustomerBusiness(' . $crow->id . ');" class="btn h-8 w-8 p-0 text-info hover:bg-info/20 focus:bg-info/20 active:bg-info/25">
-                        <i class="fa fa-bank"> </i>
-                    </button>';
-    
-                    if ('all-customers-list' == 'kyc-verified-customers' || 'all-customers-list' == 'disbursement-pending-list' || 'all-customers-list' == 'disbursement-rejected-list') {
-                        $buttons .= '<button onclick="return initiateApplyLoan(' . $crow->id . ');" class="btn h-8 w-8 p-0 text-error hover:bg-error/20 focus:bg-error/20 active:bg-error/25">
-                            <i class="fa fa-inr"></i>
-                        </button>';
+
+                    $drawDownFormFile = ($crow->drawDownFormFile) ? $crow->drawDownFormFile : null;
+                    if ($drawDownFormFile) {
+                        $htmlStr .= '<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="' . $crow->invoiceNumber . '" data-invoiceFile="' . $crow->invoiceFile . '" data-drawDownFormFile="' . $crow->drawDownFormFile . '" data-utrName="' . $crow->utr_name . '" data-utrFile="' . $crow->utr_file . '" id="rawFile' . $crow->id . '" onclick="openInvFiles(' . $crow->id . ');" >File Exist</a></td>';
+                    } else {
+                        $htmlStr .= '<td>-</td>';
                     }
-                    $htmlStr .= '</td>
-                                    <td>
-                                        <div class="d-flex">
-                                        <span id="totalCust" hidden>'.$totalCust.'</span>
-                                            ' . $buttons . '
-                                        </div>
-                                    </td>
-                                </tr>';
+
+                    $utr_name = ($crow->utr_name) ? $crow->utr_name : '';
+                    if ($utr_name) {
+                        $htmlStr .= '<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="' . $crow->invoiceNumber . '" data-invoiceFile="' . $crow->invoiceFile . '" data-drawDownFormFile="' . $crow->drawDownFormFile . '" data-utrName="' . $crow->utr_name . '" data-utrFile="' . $crow->utr_file . '"  id="rawFile' . $crow->id . '" onclick="openInvFiles(' . $crow->id . ');" >' . $crow->utr_name . '</a></td>';
+                    } else {
+                        $htmlStr .= '<td>-</td>';
+                    }
+                    $rawMaterialLoanAccountDetailsURL = route('rawMaterialLoanAccountDetails', $crow->loanId);
+                    $htmlStr .= '<td>
+                                        <a target="_blank" href="' . $rawMaterialLoanAccountDetailsURL . '" class="btn bg-success btn_import2 font-medium text-white hover:bg-success-focus hover:shadow-lg hover:shadow-success/50 focus:bg-success-focus focus:shadow-lg focus:shadow-success/50 active:bg-success-focus/90">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                     </td>
+                                     </tr>';
                 }
             }
             $htmlStr .= '</tbody>
               </table>';
             echo $htmlStr;
         } catch (\Exception $e) {
-    
+            return $e->getMessage();
+        }
+    }
+
+    public function rawPendingFileReports()
+    {
+        return view('pages.reports.raw-pending-file');
+    }
+
+    public function filterRawPendingFileReport(Request $request)
+    {
+        try {
+            $fromDate = (strtotime($request->fromDate)) ? date('Y-m-d', strtotime($request->fromDate)) : null;
+            $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : null;
+
+            $SUBQRY = '';
+
+
+            if ($fromDate != "" && $toDate != "") {
+                $SUBQRY .= " AND date(rmc.transactionDate)>='$fromDate' AND date(rmc.transactionDate)<='$toDate'";
+            } 
+
+            $SUBQRY .= ' AND (rmc.invoiceNumber IS NULL OR rmc.invoiceFile IS NULL OR rmc.drawDownFormFile IS NULL OR rmc.utr_name IS NULL OR rmc.utr_file IS NULL)';
+
+
+            $pendingFiles = DB::select("SELECT rmc.*,us.customerCode,us.name as uname,us.email as uemail,us.mobile as umobile,t.name as tenureName FROM raw_materials_txn_details rmc left join users us on us.id=rmc.userId left join tenures t on rmc.approvedTenure=t.id WHERE rmc.txnType='out' AND rmc.status='success' $SUBQRY ORDER BY rmc.transactionDate DESC");
+
+
+            $TBLLTHCLS = 'whitespace-nowrap rounded-tl-lg bg-slate-200 px-4 py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5';
+            $htmlStr = '<table  class="is-hoverableable w-full text-left dataTable no-footer overflow-x-auto">
+                <thead>
+                      <tr>
+                            <th class="' . $TBLLTHCLS . '">Loan ID</th>
+                            <th class="' . $TBLLTHCLS . '">Amount</th>
+                            <th class="' . $TBLLTHCLS . '">Customer Code</th>
+                            <th class="' . $TBLLTHCLS . '">Name</th>
+                            <th class="' . $TBLLTHCLS . '">Email</th>
+                            <th class="' . $TBLLTHCLS . '">Mobile No.</th>
+                            <th class="' . $TBLLTHCLS . '">Transaction Date</th>
+                            <th class="' . $TBLLTHCLS . '">Tenure</th>
+                            <th class="' . $TBLLTHCLS . '">Status</th>
+                            <th class="' . $TBLLTHCLS . '">Invoice No.</th>
+                            <th class="' . $TBLLTHCLS . '">Draw Down</th>
+                            <th class="' . $TBLLTHCLS . '">Customer UTR</th>
+                            <th class="' . $TBLLTHCLS . '">Action</th>
+                      </tr>
+                </thead>
+                <tbody>';
+
+            if (count($pendingFiles)) {
+                foreach ($pendingFiles as $crow) {
+                    $transactionDate = $crow->transactionDate ? date('d M, Y', strtotime($crow->transactionDate)) : '';
+                    $debitStatus = strtoupper($crow->status);
+
+                    $htmlStr .= ' <tr>
+                                    <td>LF0' . $crow->loanId . '</td>         
+                                    <td>' . number_format($crow->amount, 2) . '</td>
+                                    <td>' . $crow->customerCode . '</td>                                
+                                    <td>' . $crow->uname . '</td>
+                                    <td>' . $crow->uemail . '</td>
+                                    <td>' . $crow->umobile . '</td>
+                                     <td>' . $transactionDate . '</td>
+                                     <td>' . $crow->tenureName . '</td>
+                                     <td>' . $debitStatus . '</td>';
+                    $invNumber = ($crow->invoiceNumber) ? $crow->invoiceNumber : null;
+                    if ($invNumber) {
+                        $isInvoiceFile = 'No File';
+                        if ($crow->invoiceFile && $crow->invoiceFile != '') {
+                            $isInvoiceFile = 'File Exist';
+                        }
+                        $htmlStr .= '<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="' . $crow->invoiceNumber . '" data-invoiceFile="' . $crow->invoiceFile . '" data-drawDownFormFile="' . $crow->drawDownFormFile . '" data-utrName="' . $crow->utr_name . '" data-utrFile="' . $crow->utr_file . '" id="rawFile' . $crow->id . '" onclick="openInvFiles(' . $crow->id . ');" >' . $invNumber . ' (' . $isInvoiceFile . ')</a></td>';
+                    } else {
+                        $htmlStr .= '<td>-</td>';
+                    }
+
+                    $drawDownFormFile = ($crow->drawDownFormFile) ? $crow->drawDownFormFile : null;
+                    if ($drawDownFormFile) {
+                        $htmlStr .= '<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="' . $crow->invoiceNumber . '" data-invoiceFile="' . $crow->invoiceFile . '" data-drawDownFormFile="' . $crow->drawDownFormFile . '" data-utrName="' . $crow->utr_name . '" data-utrFile="' . $crow->utr_file . '" id="rawFile' . $crow->id . '" onclick="openInvFiles(' . $crow->id . ');" >File Exist</a></td>';
+                    } else {
+                        $htmlStr .= '<td>-</td>';
+                    }
+
+                    $utr_name = ($crow->utr_name) ? $crow->utr_name : '';
+                    if ($utr_name) {
+                        $htmlStr .= '<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="' . $crow->invoiceNumber . '" data-invoiceFile="' . $crow->invoiceFile . '" data-drawDownFormFile="' . $crow->drawDownFormFile . '" data-utrName="' . $crow->utr_name . '" data-utrFile="' . $crow->utr_file . '"  id="rawFile' . $crow->id . '" onclick="openInvFiles(' . $crow->id . ');" >' . $crow->utr_name . '</a></td>';
+                    } else {
+                        $htmlStr .= '<td>-</td>';
+                    }
+                    $rawMaterialLoanAccountDetailsURL = route('rawMaterialLoanAccountDetails', $crow->loanId);
+                    $htmlStr .= '<td>
+                                        <a target="_blank" href="' . $rawMaterialLoanAccountDetailsURL . '" class="btn bg-success btn_import2 font-medium text-white hover:bg-success-focus hover:shadow-lg hover:shadow-success/50 focus:bg-success-focus focus:shadow-lg focus:shadow-success/50 active:bg-success-focus/90">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                     </td>
+                                     </tr>';
+                }
+            }
+            $htmlStr .= '</tbody>
+              </table>';
+            echo $htmlStr;
+        } catch (\Exception $e) {
             return $e->getMessage();
         }
     }
 
 
-    public function newCustomReports(){
+    public function newCustomReports()
+    {
         $fromDate = Carbon::now()->subDays(7)->startOfDay();
         $toDate = Carbon::now()->endOfDay();
-        return view('pages.reports.daily-customer',compact('fromDate','toDate'));
+        return view('pages.reports.daily-customer', compact('fromDate', 'toDate'));
     }
 
 
-    public function filterNewCustomerReport(Request $request){
-        try{
+    public function filterNewCustomerReport(Request $request)
+    {
+        try {
             $fromDate = (strtotime($request->fromDate)) ? date('Y-m-d', strtotime($request->fromDate)) : '';
             $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : '';
-    
+
             $SUBQRY = '';
-            
+
             if ($request->kycStatus && $request->kycStatus != '0') {
                 $SUBQRY .= " AND u.kycStatus='$request->kycStatus'";
             }
             if ($request->businessStatus && $request->businessStatus != '0') {
                 $SUBQRY .= " AND eh.status='$request->businessStatus'";
             }
-            
+
             if ($fromDate != "" && $toDate != "") {
                 $SUBQRY .= " AND date(u.created_at)>='$fromDate' AND date(u.created_at)<='$toDate'";
-            }else{
+            } else {
                 $fromDate = Carbon::now()->subDays(7)->startOfDay();
                 $toDate = Carbon::now()->endOfDay();
                 $SUBQRY .= " AND date(u.created_at)>='$fromDate' AND date(u.created_at)<='$toDate'";
             }
-    
+
             $customers = DB::select("SELECT DISTINCT u.*,c.name as loanCategoryD,alh.id as loanId,alh.isAdminApproved,alh.reject_reason,eh.id as employmentHistoryId,alh.status as loanStatus,eh.status as employmentStatus FROM users u LEFT JOIN  apply_loan_histories alh ON u.id=alh.userId LEFT JOIN employment_histories eh ON u.id=eh.userId LEFT JOIN categories c ON alh.loanCategory=c.id WHERE u.userType='user' $SUBQRY ORDER BY u.id desc");
-            $totalCust = count($customers??[])??0;
-    
+            $totalCust = count($customers ?? []) ?? 0;
+
             $TBLLTHCLS = 'whitespace-nowrap rounded-tl-lg bg-slate-200 px-4 py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5';
             $htmlStr = '<table class="is-hoverable w-full text-left dataTable no-footer overflow-x-auto">
                 <thead>
@@ -305,14 +364,14 @@ class ReportController extends Controller
                             <th class="' . $TBLLTHCLS . '">Name</th>
                             <th class="' . $TBLLTHCLS . '">Email</th>
                             <th class="' . $TBLLTHCLS . '">Mobile No.</th>';
-           
-                $htmlStr .= '<th class="' . $TBLLTHCLS . '">Loan Type</th>';
-            
+
+            $htmlStr .= '<th class="' . $TBLLTHCLS . '">Loan Type</th>';
+
             $htmlStr .= '<th class="' . $TBLLTHCLS . '">Date</th>';
-            
-                $htmlStr .= '<th class="' . $TBLLTHCLS . '">KYC Status</th>';
-                $htmlStr .= '<th class="' . $TBLLTHCLS . '">Business Status</th>';
-            
+
+            $htmlStr .= '<th class="' . $TBLLTHCLS . '">KYC Status</th>';
+            $htmlStr .= '<th class="' . $TBLLTHCLS . '">Business Status</th>';
+
             $htmlStr .= '<th class="' . $TBLLTHCLS . '">Admin Approve</th>';
             $htmlStr .= '<th class="' . $TBLLTHCLS . '">Status</th>
                             <th class="' . $TBLLTHCLS . '">Action</th>
@@ -321,17 +380,17 @@ class ReportController extends Controller
                 <tbody>';
             if (count($customers)) {
                 foreach ($customers as $crow) {
-    
-                    if($crow->isAdminApproved == 'approved'){
+
+                    if ($crow->isAdminApproved == 'approved') {
                         $isadminApprove = '<span class="badge bg-success">Approved</span>';
-                    }else if($crow->isAdminApproved == 'rejected'){
-                        $isadminApprove = '<span data-bs-toggle="tooltip" data-bs-placement="top" onclick="alert(\'Rejected Reason : '.$crow->reject_reason.'\')" class="badge bg-danger">Rejected</span>';
-                    }else if($crow->isAdminApproved == 'need update'){
-                        $isadminApprove = '<span data-bs-toggle="tooltip" data-bs-placement="top" onclick="alert(\'Need Update : '.$crow->reject_reason.'\')" class="badge bg-warning">Need Update</span>';
-                    }else{
+                    } else if ($crow->isAdminApproved == 'rejected') {
+                        $isadminApprove = '<span data-bs-toggle="tooltip" data-bs-placement="top" onclick="alert(\'Rejected Reason : ' . $crow->reject_reason . '\')" class="badge bg-danger">Rejected</span>';
+                    } else if ($crow->isAdminApproved == 'need update') {
+                        $isadminApprove = '<span data-bs-toggle="tooltip" data-bs-placement="top" onclick="alert(\'Need Update : ' . $crow->reject_reason . '\')" class="badge bg-warning">Need Update</span>';
+                    } else {
                         $isadminApprove = '<span class="badge bg-info">Pending</span>';
                     }
-    
+
                     if ($crow->profilePic) {
                         $profilePic = env('APP_URL') . 'public/' . $crow->profilePic;
                     } else {
@@ -351,30 +410,30 @@ class ReportController extends Controller
                                     <td>' . $crow->mobile . '</td>
                                     <td>' . $crow->loanCategoryD . '</td>
                                     <td>' . $createdDate . '</td>';
-                    
-                        if ($crow->kycStatus == 'approved') {
-                            $htmlStr .= '<td><span class="badge badge-success-light">Approved</span></td>';
-                        } else if ($crow->kycStatus == 'rejected') {
-                            $htmlStr .= '<td><span style="background-color: #f44;" class="badge badge-danger-light">Rejected</span></td>';
-                        } else {
-                            $htmlStr .= '<td><span class="badge badge-warning-light">Pending</span></td>';
-                        }
-                    
-                    
-                        if ($crow->employmentStatus == 'approved') {
-                            $htmlStr .= '<td><span class="badge badge-success-light">Approved</span></td>';
-                        } else if ($crow->employmentStatus == 'rejected') {
-                            $htmlStr .= '<td><span style="background-color: #f44;" class="badge badge-danger-light">Rejected</span></td>';
-                        } else {
-                            $htmlStr .= '<td><span class="badge badge-warning-light">Pending</span></td>';
-                        }
-                    
-    
-                        $htmlStr .= '<td>'.$isadminApprove.'</td>';
-                    
+
+                    if ($crow->kycStatus == 'approved') {
+                        $htmlStr .= '<td><span class="badge badge-success-light">Approved</span></td>';
+                    } else if ($crow->kycStatus == 'rejected') {
+                        $htmlStr .= '<td><span style="background-color: #f44;" class="badge badge-danger-light">Rejected</span></td>';
+                    } else {
+                        $htmlStr .= '<td><span class="badge badge-warning-light">Pending</span></td>';
+                    }
+
+
+                    if ($crow->employmentStatus == 'approved') {
+                        $htmlStr .= '<td><span class="badge badge-success-light">Approved</span></td>';
+                    } else if ($crow->employmentStatus == 'rejected') {
+                        $htmlStr .= '<td><span style="background-color: #f44;" class="badge badge-danger-light">Rejected</span></td>';
+                    } else {
+                        $htmlStr .= '<td><span class="badge badge-warning-light">Pending</span></td>';
+                    }
+
+
+                    $htmlStr .= '<td>' . $isadminApprove . '</td>';
+
                     $htmlStr .= '<td>';
-    
-    
+
+
                     if ($crow->status == 1) {
                         $htmlStr .= '<span class="badge badge-success-light">Active</span>';
                     } else if ($crow->status == 2) {
@@ -382,7 +441,7 @@ class ReportController extends Controller
                     } else {
                         $htmlStr .= '<span class="badge badge-danger">Deactive</span>';
                     }
-    
+
                     $buttons = '<a href="' . route('profileDetails', ['all-customers-list', $crow->id]) . '" class="btn h-8 w-8 p-0 text-info hover:bg-info/20 focus:bg-info/20 active:bg-info/25" data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="View" aria-label="View"><i data-feather="eye" class="fa fa-eye text-primary"></i></a>';
                     $buttons .= '<button type="button" onclick="editCustomerProfile(' . $crow->id . ');" class="btn h-8 w-8 p-0 text-info hover:bg-info/20 focus:bg-info/20 active:bg-info/25">
                         <i class="fa fa-edit"></i>
@@ -390,7 +449,7 @@ class ReportController extends Controller
                     $buttons .= '<button type="button" onclick="editCustomerBusiness(' . $crow->id . ');" class="btn h-8 w-8 p-0 text-info hover:bg-info/20 focus:bg-info/20 active:bg-info/25">
                         <i class="fa fa-bank"> </i>
                     </button>';
-    
+
                     if ('all-customers-list' == 'kyc-verified-customers' || 'all-customers-list' == 'disbursement-pending-list' || 'all-customers-list' == 'disbursement-rejected-list') {
                         $buttons .= '<button onclick="return initiateApplyLoan(' . $crow->id . ');" class="btn h-8 w-8 p-0 text-error hover:bg-error/20 focus:bg-error/20 active:bg-error/25">
                             <i class="fa fa-inr"></i>
@@ -399,7 +458,7 @@ class ReportController extends Controller
                     $htmlStr .= '</td>
                                     <td>
                                         <div class="d-flex">
-                                        <span id="totalCust" hidden>'.$totalCust.'</span>
+                                        <span id="totalCust" hidden>' . $totalCust . '</span>
                                             ' . $buttons . '
                                         </div>
                                     </td>
@@ -410,7 +469,7 @@ class ReportController extends Controller
               </table>';
             echo $htmlStr;
         } catch (\Exception $e) {
-    
+
             return $e->getMessage();
         }
     }
@@ -578,7 +637,7 @@ class ReportController extends Controller
                     $results[$nowcount]->disbursedDate = $rsdata->disbursedDate;
                     $results[$nowcount]->paidDisbursementAmount = $rsdata->paidDisbursementAmount;
                     $results[$nowcount]->principleCharges = $rsdata->principleCharges;
-                    $results[$nowcount]->principleChargesDetails = $rsdata->principleChargesDetails??null;
+                    $results[$nowcount]->principleChargesDetails = $rsdata->principleChargesDetails ?? null;
                     $results[$nowcount]->extraIntrestAmount = $rsdata->extraIntrestAmount;
                     $results[$nowcount]->principleDeposited = $rsdata->principleDeposited;
                     $results[$nowcount]->interestPaid = $rsdata->interestPaid;
@@ -696,7 +755,7 @@ class ReportController extends Controller
                 $nowcount = count($results);
                 foreach (DB::select($querys) as $rsdata) {
 
-                   
+
 
                     $results[$nowcount] = new stdClass();
                     $results[$nowcount]->userId = $rsdata->userId;
@@ -710,7 +769,7 @@ class ReportController extends Controller
                     $results[$nowcount]->paidDisbursementAmount = $rsdata->paidDisbursementAmount;
                     $results[$nowcount]->extraIntrestAmount = 0;
                     $results[$nowcount]->principleCharges = $rsdata->principleCharges;
-                    $results[$nowcount]->principleChargesDetails = $rsdata->principleChargesDetails??null;
+                    $results[$nowcount]->principleChargesDetails = $rsdata->principleChargesDetails ?? null;
                     $results[$nowcount]->principleDeposited = $rsdata->principleDeposited;
                     $results[$nowcount]->interestPaid = $rsdata->interestPaid;
                     $results[$nowcount]->totalOutStanding = ($rsdata->approvedAmount - $rsdata->principleDeposited);
@@ -722,7 +781,7 @@ class ReportController extends Controller
                 $results = DB::select($querys);
             }
         }
-        usort($results, fn ($a, $b) => $b->id  <=> $a->id);
+        usort($results, fn($a, $b) => $b->id  <=> $a->id);
 
 
 
@@ -756,14 +815,14 @@ class ReportController extends Controller
             $totalOutStandingBalance = 0;
             foreach ($results as $row) {
 
-                $principleChargesDetails = isset($row->principleChargesDetails) ? json_decode($row->principleChargesDetails,true) : null;
+                $principleChargesDetails = isset($row->principleChargesDetails) ? json_decode($row->principleChargesDetails, true) : null;
                 $insurace = $principleChargesDetails ? $principleChargesDetails['insurance'] : 0;
 
                 $principleDeposited = $row->principleDeposited != '' ? $row->principleDeposited : 0;
                 $interestPaid = $row->interestPaid != '' ? $row->interestPaid : 0;
                 $totalOutStanding = $row->totalOutStanding != '' ? $row->totalOutStanding :  $row->netDisbursementAmount;
                 $DisbursementAmount = $row->paidDisbursementAmount ? $row->paidDisbursementAmount : number_format(0.00, 2);
-                $principleCharges = ($row->principleCharges && $row->principleCharges !=0) ? $row->principleCharges-$insurace : 0;
+                $principleCharges = ($row->principleCharges && $row->principleCharges != 0) ? $row->principleCharges - $insurace : 0;
 
                 $htmlStr .= '<tr>';
                 $htmlStr .= '<td>' . $rsr . '</td>';
@@ -919,7 +978,7 @@ class ReportController extends Controller
     {
 
         $loanType = $request->loanTypereportFilter;
-        
+
         if ($request->selected_month) {
             $nextMonth = date('m', strtotime($request->selected_month));
             $thisYear = date('Y', strtotime($request->selected_month));
@@ -1001,49 +1060,50 @@ class ReportController extends Controller
         return ['html' => $htmlStr, 'totalEMIAmount' => number_format($totalEMIAmount, 2)];
     }
 
-    public function quaturlyData() {
-    $output = array();
-    $currentMonth = date("n"); // Current month as a number (1-12)
-    $currentYear = date("Y"); // Current year
+    public function quaturlyData()
+    {
+        $output = array();
+        $currentMonth = date("n"); // Current month as a number (1-12)
+        $currentYear = date("Y"); // Current year
 
-    // Define the quarter start months
-    $quarterStartMonths = [1, 4, 7, 10];
+        // Define the quarter start months
+        $quarterStartMonths = [1, 4, 7, 10];
 
-    // Find the current quarter start month and index
-    $currentQuarterIndex = null;
-    foreach ($quarterStartMonths as $index => $month) {
-        if ($currentMonth >= $month && $currentMonth < $month + 3) {
-            $currentQuarterIndex = $index;
-            break;
+        // Find the current quarter start month and index
+        $currentQuarterIndex = null;
+        foreach ($quarterStartMonths as $index => $month) {
+            if ($currentMonth >= $month && $currentMonth < $month + 3) {
+                $currentQuarterIndex = $index;
+                break;
+            }
         }
-    }
 
-    // Exclude the current incomplete quarter
-    if ($currentMonth % 3 != 0) {
-        $currentQuarterIndex = ($currentQuarterIndex - 1 + 4) % 4;
-    }
-
-    // Generate the quarter date ranges in descending order
-    $quarters = [];
-    $year = $currentYear;
-    for ($i = 0; $i < 4; $i++) {
-        $quarterIndex = ($currentQuarterIndex - $i + 4) % 4;
-        $startMonth = $quarterStartMonths[$quarterIndex];
-        $endMonth = $quarterStartMonths[($quarterIndex + 1) % 4] - 1;
-        if ($endMonth == 0) {
-            $endMonth = 12;
+        // Exclude the current incomplete quarter
+        if ($currentMonth % 3 != 0) {
+            $currentQuarterIndex = ($currentQuarterIndex - 1 + 4) % 4;
         }
-        $quarterYear = $year;
-        if ($currentQuarterIndex - $i < 0) {
-            $quarterYear--;
-        }
-        $startDate = date("F Y", mktime(0, 0, 0, $startMonth, 1, $quarterYear));
-        $endDate = date("F Y", mktime(0, 0, 0, $endMonth, date("t", mktime(0, 0, 0, $endMonth, 1, $quarterYear)), $quarterYear));
-        $quarters[] = $startDate . " - " . $endDate;
-    }
 
-    return $quarters;
-}
+        // Generate the quarter date ranges in descending order
+        $quarters = [];
+        $year = $currentYear;
+        for ($i = 0; $i < 4; $i++) {
+            $quarterIndex = ($currentQuarterIndex - $i + 4) % 4;
+            $startMonth = $quarterStartMonths[$quarterIndex];
+            $endMonth = $quarterStartMonths[($quarterIndex + 1) % 4] - 1;
+            if ($endMonth == 0) {
+                $endMonth = 12;
+            }
+            $quarterYear = $year;
+            if ($currentQuarterIndex - $i < 0) {
+                $quarterYear--;
+            }
+            $startDate = date("F Y", mktime(0, 0, 0, $startMonth, 1, $quarterYear));
+            $endDate = date("F Y", mktime(0, 0, 0, $endMonth, date("t", mktime(0, 0, 0, $endMonth, 1, $quarterYear)), $quarterYear));
+            $quarters[] = $startDate . " - " . $endDate;
+        }
+
+        return $quarters;
+    }
 
 
 
@@ -1069,16 +1129,13 @@ class ReportController extends Controller
         $loanType = $request->loanTypereportFilter;
 
 
-          $SUBQRY = '';
+        $SUBQRY = '';
         if ($loanType && $loanType == '3') {
             $SUBQRY .= " AND date(rawl.openingDate) <= date('$endDate')";
             $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) <= date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
-            
         } elseif ($loanType && $loanType == '8') {
-        $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN CASE WHEN DATE(led.transactionDate) BETWEEN '$startDate' AND '$endDate' THEN led.emiDate ELSE led.emiDate END WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE(alh.disbursedDate, '$endDate') ELSE alh.disbursedDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN( SELECT COUNT(*) FROM loan_emi_details WHERE loanId = alh.id AND STATUS = 'pending' AND DATE(emiDate) <= '$endDate' ) > 0 THEN( SELECT balance - COALESCE(SUM(principle), 0) FROM loan_emi_details WHERE loanId = alh.id AND STATUS = 'pending' AND DATE(emiDate) <= '$endDate' ) ELSE( SELECT balance FROM loan_emi_details WHERE loanId = alh.id ORDER BY id DESC LIMIT 1 ) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN( SELECT led.* FROM loan_emi_details led INNER JOIN( SELECT loanId, MAX(id) AS max_id FROM loan_emi_details WHERE emiDate BETWEEN '$startDate' AND '$endDate' OR status='pending' GROUP BY loanId ) AS mled ON led.id = mled.max_id ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = 8 AND( DATE(alh.disbursedDate) <= '$endDate' OR( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND( ( led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL ) OR( alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) > 0 ) ) ) ) HAVING netemiAmount > 0 AND emiId IS NOT NULL AND( t_date BETWEEN '$mon1tartDate' AND '$endDate' ) ORDER BY alh.id DESC");
-
-           
-        }elseif ($loanType) {
+            $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN CASE WHEN DATE(led.transactionDate) BETWEEN '$startDate' AND '$endDate' THEN led.emiDate ELSE led.emiDate END WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE(alh.disbursedDate, '$endDate') ELSE alh.disbursedDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN( SELECT COUNT(*) FROM loan_emi_details WHERE loanId = alh.id AND STATUS = 'pending' AND DATE(emiDate) <= '$endDate' ) > 0 THEN( SELECT balance - COALESCE(SUM(principle), 0) FROM loan_emi_details WHERE loanId = alh.id AND STATUS = 'pending' AND DATE(emiDate) <= '$endDate' ) ELSE( SELECT balance FROM loan_emi_details WHERE loanId = alh.id ORDER BY id DESC LIMIT 1 ) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN( SELECT led.* FROM loan_emi_details led INNER JOIN( SELECT loanId, MAX(id) AS max_id FROM loan_emi_details WHERE emiDate BETWEEN '$startDate' AND '$endDate' OR status='pending' GROUP BY loanId ) AS mled ON led.id = mled.max_id ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = 8 AND( DATE(alh.disbursedDate) <= '$endDate' OR( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND( ( led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL ) OR( alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) > 0 ) ) ) ) HAVING netemiAmount > 0 AND emiId IS NOT NULL AND( t_date BETWEEN '$mon1tartDate' AND '$endDate' ) ORDER BY alh.id DESC");
+        } elseif ($loanType) {
             $SUBQRY = ' AND alh.loanCategory=' . $loanType;
             $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN COALESCE( ( SELECT MAX(emiDate) FROM loan_emi_details WHERE loanId = alh.id AND status = 'success' AND emiAmount != 0 AND transactionDate IS NOT NULL AND DATE(emiDate) <= '$endDate'), DATE_FORMAT(DATE_ADD(alh.disbursedDate, INTERVAL 0 MONTH), '%Y-%m-05'), '$endDate' ) WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE( DATE_FORMAT(DATE_ADD(alh.disbursedDate, INTERVAL 1 MONTH), '%Y-%m-05'), '$endDate' ) ELSE led.emiDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN led.status = 'success' AND DATE(led.emiDate) <= '$endDate' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN led.balance - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) ELSE alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN ( SELECT * FROM loan_emi_details WHERE id IN ( SELECT MAX(id) FROM loan_emi_details WHERE status = 'success' AND transactionDate IS NOT NULL GROUP BY loanId ) ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = $loanType AND ( DATE(alh.disbursedDate) <= '$endDate' OR ( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND ( ( led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL ) OR ( alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) > 0 ) ) ) ) HAVING netemiAmount > 0 AND emiId IS NOT NULL  ORDER BY alh.id DESC");
         } else {
@@ -1124,7 +1181,7 @@ class ReportController extends Controller
 
                 $roiwidth = ($row->rateOfInterest / 100) * $row->netemiAmount;
 
-                $interstCal = round(($roiwidth/365)*$totalDays,2);
+                $interstCal = round(($roiwidth / 365) * $totalDays, 2);
 
                 $htmlStr .= '<tr>';
                 $htmlStr .= '<td>' . $rsr . '</td>';
@@ -1166,7 +1223,7 @@ class ReportController extends Controller
             foreach ($customer->pendingloans as $loan) {
                 if ($loan['loanCategory'] == 3) {
                     $loan['status'] = 'customer-approved';
-                } 
+                }
                 // else {
                 //     $loan['status'] = 'disbursed';
                 // }
@@ -1232,7 +1289,7 @@ class ReportController extends Controller
 
                 $leftUserAmount = $collectionAmount - $interestPayble;
                 $baseAmountCredit = $leftUserAmount;
-                
+
                 if ($leftUserAmount >= $amount) {
                     $baseAmountCredit = $amount;
                     $leftUserAmount = round($leftUserAmount - $amount);
@@ -1246,7 +1303,7 @@ class ReportController extends Controller
                 $baseAmountCredit = ($baseAmountCredit > 0) ? $baseAmountCredit : 0;
                 $loopchk++;
                 goto startSattleTxn;
-            }else{
+            } else {
                 $rateOfInterest = $loanDetails->rateOfInterest;
 
                 $transactionDate = date('Y-m-d', strtotime($request->transactionDate));
@@ -1268,10 +1325,10 @@ class ReportController extends Controller
                     session(['collectionAmount' => 0]);
                 }
             }
-            echo json_encode(['totalInterest'=>$totalInterestSum]);
+            echo json_encode(['totalInterest' => $totalInterestSum]);
             exit;
         }
-        echo json_encode(['totalInterest'=>$totalInterestSum]);
+        echo json_encode(['totalInterest' => $totalInterestSum]);
         exit;
     }
 

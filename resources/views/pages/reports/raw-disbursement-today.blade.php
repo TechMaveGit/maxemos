@@ -3,7 +3,7 @@
 @section('content')
     <main >
         <div class="breadcrums_area breadcrums">
-            <div class="common_pagetitle">Raw Material Pending Files</div>
+            <div class="common_pagetitle">Today Raw Material Disbursement</div>
                 
             <div class="flex items-center space-x-4  lg:py-6 breadcrum_right">
                 <h2 class="text-xl font-medium text-slate-800 dark:text-navy-50 lg:text-2xl breadcrum_largetitle">
@@ -19,13 +19,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
                     </li>
-                    <li>Raw Material Pending Files</li>
+                    <li>Today Raw Material Disbursement</li>
                 </ul>
             </div>
         </div>
 
         <div class="main_page_title">
-            <div class="common_pagetitlebig" style="width: 30%;">Raw Material Pending Files</div>
+            <div class="common_pagetitlebig" style="width: 30%;">Today Raw Material Disbursement</div>
             <div class="btns_rightimport" style="display: inline-flex">
                 {{-- <div><strong>Total Amount : </strong><span id="totalCustomers" class="text-danger" style="font-weight: 700;"></span></div> --}}
             </div>
@@ -35,7 +35,6 @@
                 <div class="row">
                     <div class="col-md-12">
                         <div class="row">
-                           
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label class="block">
@@ -68,13 +67,12 @@
                             </div>
                             
                             <div class="col-md-4">
-                                <button type="button" onclick="filterRawPendingFileReport();" class="btn btn-block mt-4 rounded-full bg-danger font-medium text-white hover:bg-danger-focus focus:bg-danger-focus active:bg-danger-focus/90 dark:bg-accent dark:hover:bg-accent-focus dark:focus:bg-accent-focus dark:active:bg-accent/90">
+                                <button type="button" onclick="filterTodayRawDisbursements();" class="btn btn-block mt-4 rounded-full bg-danger font-medium text-white hover:bg-danger-focus focus:bg-danger-focus active:bg-danger-focus/90 dark:bg-accent dark:hover:bg-accent-focus dark:focus:bg-accent-focus dark:active:bg-accent/90">
                                     Search
                                 </button>
                                 <a href="javascript:;" onclick="resetFilter();" class="btn btn-block mt-4 rounded-full bg-warning font-medium text-white hover:bg-warning-focus focus:bg-warning-focus active:bg-warning-focus/90 dark:bg-accent dark:hover:bg-accent-focus dark:focus:bg-accent-focus dark:active:bg-accent/90">Reset Filter</a>
-                                <a id="exportdatahref" href="{{route('adminExportReports',['page'=>'raw-pending-files'])}}/?loanreportFilter=none" class="btn btn-info mt-4 text-white"> Export Data</a> 
+                                <a id="exportdatahref" href="{{route('adminExportReports',['page'=>'raw-today-disbursements'])}}/?loanreportFilter=none" class="btn btn-info mt-4 text-white"> Export Data</a> 
                             </div>
-                            
                         </div>
                     </div>
                 </div>
@@ -174,7 +172,7 @@
         location.reload();
     }
 
-        function filterRawPendingFileReport()
+        function filterTodayRawDisbursements()
         {
             var fromDate=$('#fromDate').val();
             var toDate=$('#toDate').val();
@@ -193,7 +191,7 @@
             $("#exportdatahref").attr('href',url);
 
             $('#mainTblHtml').html('<center><img src="{{env('LOADERIMG')}}" /></center>');
-            $.post('{{route('filterRawPendingFileReport')}}',{
+            $.post('{{route('filterTodayRawDisbursements')}}',{
                 "_token": "{{ csrf_token() }}",
                 fromDate:fromDate,
                 toDate:toDate,
@@ -208,7 +206,7 @@
         }
 
         $(document).ready(function (){
-            filterRawPendingFileReport();
+            filterTodayRawDisbursements();
         });
 
 

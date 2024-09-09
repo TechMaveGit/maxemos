@@ -340,6 +340,9 @@ Route::group(['prefix'=>'admin', 'middleware'=>'auth:web'], function(){
     Route::get('raw-pending-files',[ReportController::class,'rawPendingFileReports'])->name('rawPendingFileReports');
     Route::post('filter-raw-pending-files',[ReportController::class,'filterRawPendingFileReport'])->name('filterRawPendingFileReport');
 
+    Route::get('today-raw-disbursements',[ReportController::class,'todayRawDisbursements'])->name('todayRawDisbursements');
+    Route::post('filter-today-raw-disbursements',[ReportController::class,'filterTodayRawDisbursements'])->name('filterTodayRawDisbursements');
+
     Route::get('payment-report',[ReportController::class,'paymentReports'])->name('paymentReports');
     Route::post('filter-payment-report',[ReportController::class,'filterPaymentReports'])->name('filterPaymentReports');
 

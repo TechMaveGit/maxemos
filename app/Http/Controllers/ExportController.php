@@ -315,7 +315,7 @@ class ExportController extends Controller
                 $principleDeposited = $row->principleDeposited != '' ? $row->principleDeposited : 0;
                 $interestPaid = $row->interestPaid != '' ? $row->interestPaid : 0;
                 $totalOutStanding = $row->totalOutStanding != '' ? $row->totalOutStanding :  $row->netDisbursementAmount;
-                $DisbursementAmount = $row->paidDisbursementAmount ? $row->paidDisbursementAmount : number_format(0.00, 2);
+                $DisbursementAmount = $row->paidDisbursementAmount ? $row->paidDisbursementAmount : 0.00;
                 $disbursedDateRow = $row->disbursedDate;
 
                 $content .= ($k + 1) . ',' . $row->customerCode . ',' . $disbursedDateRow . ',' . $row->name . ',' .  $row->loanName . ','  .  $row->approvedAmount . ',' . ($row->principleCharges-$insurace) . ',' . $row->extraIntrestAmount . ',' . $DisbursementAmount . ',' . $principleDeposited . ',' . $interestPaid . ',' . $totalOutStanding . "\r\n";
@@ -702,9 +702,61 @@ class ExportController extends Controller
             }
             $results = DB::select("SELECT u.name,u.customerCode,u.mobile,u.email,alh.id as loanId,eh.id as employmentHistoryId,alh.status as loanStatus,eh.status as employmentStatus,alh.approvedAmount,(SELECT IFNULL(SUM(openingBalanceLatest),0) FROM raw_materials_txn_details WHERE status='success' AND loanId=alh.id AND txnType='out') as netDisbursementAmount FROM users u LEFT JOIN  apply_loan_histories alh ON u.id=alh.userId LEFT JOIN employment_histories eh ON u.id=eh.userId WHERE u.userType='user' $SUBQRY ORDER BY u.id desc");
 
-            // dd($results);
             foreach ($results as $k => $row) {
                 $content .= ($k + 1) . ',' . $row->customerCode . ',' . $row->name . ',' .  $row->email . ','  .  $row->mobile . ',' . $row->approvedAmount . ',' . ($row->approvedAmount - $row->netDisbursementAmount) . ',' . $row->netDisbursementAmount . "\r\n";
+            }
+        }else if ($page == 'raw-pending-files' || $page == 'raw-today-disbursements') {
+            if($page == 'raw-pending-files')  $fileName = 'RawMaterialPendingFiles-' . date('Y-m-d');
+            else $fileName = 'RawTodayDisbursements-' . date('Y-m-d');
+            $content = 'Sr. No., Loan ID, Amount,Customer Code,Customer Name, Customer Email, Customer Mobile, Transaction Date, Tenure,Status,Invoice No.,Draw Down,Customer UTR' . "\r\n";
+            
+            $fromDate = (strtotime($request->fromDate)) ? date('Y-m-d', strtotime($request->fromDate)) : null;
+            $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : null;
+    
+            $SUBQRY = '';
+            if ($fromDate != "" && $toDate != "") {
+                $SUBQRY .= " AND date(rmc.transactionDate)>='$fromDate' AND date(rmc.transactionDate)<='$toDate'";
+            }else{
+                $fromDate = Carbon::now()->subDays(7)->startOfDay();
+                $toDate = Carbon::now()->endOfDay();
+                $SUBQRY .= " AND date(rmc.transactionDate)>='$fromDate' AND date(rmc.transactionDate)<='$toDate'";
+            }
+
+            $SUBQRY .= ' AND (rmc.invoiceNumber IS NULL OR rmc.invoiceFile IS NULL OR rmc.drawDownFormFile IS NULL OR rmc.utr_name IS NULL OR rmc.utr_file IS NULL)';
+            
+            $results = DB::select("SELECT rmc.*,us.customerCode,us.name as uname,us.email as uemail,us.mobile as umobile,t.name as tenureName FROM raw_materials_txn_details rmc left join users us on us.id=rmc.userId left join tenures t on rmc.approvedTenure=t.id WHERE rmc.txnType='out' AND rmc.status='success' $SUBQRY ORDER BY rmc.transactionDate DESC");
+            
+            foreach ($results as $k => $row) {
+                $transactionDate=$row->transactionDate ? date('d/M/Y',strtotime($row->transactionDate)) : '';
+                $debitStatus=strtoupper($row->status);
+
+                $invNumberData = '';
+                $invNumber=($row->invoiceNumber) ? $row->invoiceNumber : null;
+                if($invNumber){
+                    $isInvoiceFile = 'No File';
+                    if($row->invoiceFile && $row->invoiceFile != ''){
+                        $isInvoiceFile = 'File Exist';
+                    }
+                    $invNumberData =$invNumber.' ('.$isInvoiceFile.')';
+                }
+
+                $drawDownFormFileData = '';
+                $drawDownFormFile=($row->drawDownFormFile) ? $row->drawDownFormFile : null;
+                if($drawDownFormFile){
+                    $drawDownFormFileData ='File Exist';
+                }
+
+                $utrData = '';
+                $utr_name=($row->utr_name) ? $row->utr_name : '';
+                if($utr_name){
+                    $isutrFile = 'No File';
+                    if($row->utr_file && $row->utr_file != ''){
+                        $isutrFile = 'File Exist';
+                    }
+                    $utrData =$row->utr_name.' ('.$isutrFile.')';
+                }
+
+                $content .= ($k + 1).',LF0'.$row->loanId .','.$row->amount . ',' . $row->customerCode . ',' . $row->uname . ',' .  $row->uemail . ','  .  $row->umobile .','.$transactionDate. ',' . $row->tenureName . ',' . $debitStatus .','.$invNumberData.','.$drawDownFormFileData. ',' . $utrData . "\r\n";
             }
         } else if ($page == 'customer-rawmaterial-dataexport') {
             $fileName = 'RawMaterialFinancingLoans-' . date('Y-m-d');

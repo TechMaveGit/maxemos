@@ -1432,6 +1432,7 @@
                 $("#scheduleDisbursePreviewData").html(data.htmldata);
                 $("#includeextraDays").css({"display": "block"});
                 $("#includeExtraDaysData").attr('data-eday',data.extradays);
+                $("#paidInterestAlr").text('Yes ('+data.paidInterest+')');
                 includeExtraDaysAmount(loanId);
             });
 
@@ -1694,6 +1695,29 @@
                 }
             });
         }
+
+        function roiTypeUpdate(){
+            let paidFullInterest = $(".paidFullInterest");
+            let loanCategory = $("#loanCategory").val();
+            
+            if((loanCategory=="1" || loanCategory=="2") && ($("#roiType").val() == 'reducing_roi' || $("#roiType").val() == 'fixed_interest_roi')){
+                if(paidFullInterest.val() == undefined){
+                $("#roiType").after(`<div class="paidFullInterest form-check">
+                    <input class="form-check-input"  name="paidFullInterest" type="checkbox" value="1" id="paidFullInterest">
+                    <label class="form-check-label" for="paidFullInterest">
+                        Already Paid Full Interest
+                    </label>
+                </div>`);
+            }
+            }else{
+                if(paidFullInterest){
+                    paidFullInterest.remove();
+                }
+            }
+        }
+        setInterval(() => {
+            roiTypeUpdate();
+        }, 1500);
 
         function initiateApplyLoanEditForCustomerConsent(loanId)
         {

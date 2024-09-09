@@ -548,6 +548,48 @@
                                         </div>
                                     </div><!-- /.form-group-->
                                 </div>
+                                <div class="col-md-12 verify_docbutton">
+                                    <h6>Other Documents</h6>
+                                    <div class="bkother "  style="border: 1px solid #dbdbdb;padding: 24px;">
+                                        @if($otherDocs && $otherDocs->count()>0)
+                                        @foreach($otherDocs as $value)
+                                        <div class="row"> 
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Document Name</label>
+                                                    <input type="text" disabled class="form-control" value="{{$value->title}}" >
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Document File @if($value && $value->docsUrl) <a
+                                                        href="{{asset('public')}}/{{$value->docsUrl}}"
+                                                        target="_blank">(Click Here To View) </a>@endif</label>
+                                                    <input type="file" disabled class="form-control" >
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endforeach
+                                        @else
+                                        <div class="row"> 
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Document Name</label>
+                                                    <input type="text" class="form-control" name="otherDocumentTitle[]">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Document File</label>
+                                                    <input type="file" class="form-control" name="otherDocument[]">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endif
+                                    </div>
+                                    <button type="button" style="margin-top: 10px;" id="addMoreotherDocs">Add More +</button>
+                                    
+                                </div>
                             </div>
 
                             <div class="row backprevbtns card-footer">
@@ -2528,6 +2570,27 @@ function isAlphabet(e){
                 $("#pancard_partner2").attr('disabled',false);
             }
         }
+    });
+</script>
+<script>
+    $("#addMoreotherDocs").click(function(){
+
+        let htmldataApp = ` <div class="row"> 
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Document Name</label>
+                                                    <input type="text" class="form-control" name="otherDocumentTitle[]">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Document File</label>
+                                                    <input type="file" class="form-control" name="otherDocument[]">
+                                                </div>
+                                            </div>
+                                        </div>`;
+                                        $(".bkother").append(htmldataApp);
+
     });
 </script>
 @endpush

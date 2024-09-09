@@ -550,6 +550,12 @@
                                 <a href="" style="color:blue;" target="_blank" id="drawDownFormFileV">View Draw Down Form</a>
                             </div>
                         </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <strong>UTR Name</strong> <span id="utrNameV"></span> <br>
+                                <a href="" style="color:blue;" target="_blank" id="utrFormFileV">View UTR File</a>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -864,6 +870,14 @@
             <label><strong>Upload Draw Down Form</strong></label>
             <input type="file" id="drawDownFormFile" value="" name="drawDownFormFile" class="form-control">
         </div>
+        <div class="col-lg-6 mt-3">
+            <label><strong>UTR Name</strong> </label>
+            <input type="text" id="utrName" value="" name="utrName" class="form-control">
+        </div>
+        <div class="col-lg-6 mt-3">
+            <label><strong>UTR File</strong> <a class="btn btn-sm btn-link" style="padding: 0px" id="viewUtrFile" href="" target="_blank">View File</a></label>
+            <input type="file" id="utrFile" value="" name="utrFile" class="form-control">
+        </div>
         `;
 
 
@@ -1166,11 +1180,24 @@
         var invoiceNumber=$('#rawFile'+loanIdDisburseId).attr('data-invoiceNumber');
         var invoiceFile=$('#rawFile'+loanIdDisburseId).attr('data-invoiceFile');
         var drawDownFormFile=$('#rawFile'+loanIdDisburseId).attr('data-drawDownFormFile');
+
+        var urtName=$('#rawFile'+loanIdDisburseId).attr('data-urtName');
+        var urtFile=$('#rawFile'+loanIdDisburseId).attr('data-urtFile');
         
         $('#invoiceNumberV').html(invoiceNumber);
-        $('#invoiceFileV').attr('href','{{asset('/')}}public/'+invoiceFile);
-        $('#drawDownFormFileV').attr('href','{{asset('/')}}public/'+drawDownFormFile);
+        $('#invoiceFileV').attr('href',`{{asset('/')}}public/${invoiceFile}`);
+        $('#drawDownFormFileV').attr('href',`{{asset('/')}}public/${drawDownFormFile}`);
+
+        $('#utrNameV').html(urtName);
+        if(urtFile == undefined){
+            $('#utrFormFileV').attr('href',`javascript:void(0);`);
+        }else{
+            $('#utrFormFileV').attr('href',`{{asset('/')}}public/${urtFile}`);
+        }
+        
+
         $('#rawDocsModal').modal('show');
+
     }
 </script>
 

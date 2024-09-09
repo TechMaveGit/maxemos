@@ -19,6 +19,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin />
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&amp;display=swap" rel="stylesheet"/>
+     
 
     <!-- bootstrap -->
     <link rel="stylesheet" href="{{asset('assets/admin')}}/css/bootstrap.min.css" />
@@ -899,20 +900,20 @@ $userPermissions=App\Providers\AppServiceProvider::checkDecodePermissions();
 
                             <ul x-collapse x-show="expanded">
 
-                                {{-- <li>
+                                <li>
                                     <a
-                                        href="{{ route('customReports',['new-customers',urlencode('New customers lending')]) }}"
+                                        href="{{ route('newCustomReports') }}"
                                         class="flex items-center justify-between p-2 text-xs+ tracking-wide text-slate-500 outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4 hover:text-slate-800 dark:text-navy-200 dark:hover:text-navy-50"
                                     >
                                         <div class="flex items-center space-x-2">
                                             <div
                                                 class="h-1.5 w-1.5 rounded-full border border-current opacity-40"
                                             ></div>
-                                            <span>New customers lending</span>
+                                            <span>New Customers Lending</span>
                                         </div>
                                     </a>
                                 </li>
-                                <li>
+                                {{-- <li>
                                     <a
                                         href="{{ route('customReports',['approved-loans',urlencode('Approved customers')]) }}"
                                         class="flex items-center justify-between p-2 text-xs+ tracking-wide text-slate-500 outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4 hover:text-slate-800 dark:text-navy-200 dark:hover:text-navy-50"
@@ -962,6 +963,19 @@ $userPermissions=App\Providers\AppServiceProvider::checkDecodePermissions();
                                                 class="h-1.5 w-1.5 rounded-full border border-current opacity-40"
                                             ></div>
                                             <span>Over Due Report</span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="{{ route('rawPendingFileReports') }}"
+                                        class="flex items-center justify-between p-2 text-xs+ tracking-wide text-slate-500 outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4 hover:text-slate-800 dark:text-navy-200 dark:hover:text-navy-50"
+                                    >
+                                        <div class="flex items-center space-x-2">
+                                            <div
+                                                class="h-1.5 w-1.5 rounded-full border border-current opacity-40"
+                                            ></div>
+                                            <span>Raw Pending Files</span>
                                         </div>
                                     </a>
                                 </li>
@@ -2012,7 +2026,11 @@ $userPermissions=App\Providers\AppServiceProvider::checkDecodePermissions();
                 }else{
                     $('#emiDetailsHtml').html(obj.data);
                     console.log(obj.payOutStandingTxnDateMaxDate);
-                    $("#payOutStandingTxnDate" ).datepicker({changeYear:true,changeMonth:true,minDate:0});
+                    //$("#payOutStandingTxnDate" ).datepicker({changeYear:true,changeMonth:true,minDate:0,container:'#emiDetails'});
+                    $("#payOutStandingTxnDate" ).flatpickr({
+                        dateFormat: "m/d/Y"
+                    });
+                    
                     $('#emiDetails').modal('show');
                 }
             });

@@ -777,7 +777,16 @@ class CustomerController extends Controller
                 </div>';
         }
 
-        $htmlStr .= '<div class="col-lg-12 mt-3">
+        $htmlStr .= '<div class="col-lg-4 mt-3">
+                    <label><strong>Is Interest Already Paid</strong></label><br>';
+        if ($loanDetails->paidInterest && (int)$loanDetails->paidInterest != 0){
+            $htmlStr .= '<label id="paidInterestAlr">Yes ('.$loanDetails->paidInterest.')</label>';
+        }else{
+            $htmlStr .= '<label>No</label>';
+        }
+        $htmlStr .='</div>';
+
+        $htmlStr .= '<div class="col-lg-4 mt-3">
                     <label><strong>Disburse Date</strong></label>
                     <input type="date" style="cursor: pointer;" ';
         if ($loanDetails->roiType != "bullet_repayment") $htmlStr .= ' onchange="previewScheduleDisburse(' . $loanId . ')" ';
@@ -1814,7 +1823,7 @@ class CustomerController extends Controller
             AppServiceProvider::sendMail("info@maxemocapital.com", "Info Maxemo", "Loan Rejected | " . $verifyWith, $htmlStAdmin,$bccMail);
         } else {
             $bccMail = config('mail.testMail');
-            AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "Loan Rejected | " . $verifyWith, $htmlStAdmin,$bccMail);
+            AppServiceProvider::sendMail("basant@techmavesoftware.com", "Raju", "Loan Rejected | " . $verifyWith, $htmlStAdmin,$bccMail);
         }
 
         $save = ApplyLoanHistory::where('id', $rejectForCustomerConsentLoanId)->update(['status' => 'rejected', 'remark' => $rejectForCustomerConsentRemark]);

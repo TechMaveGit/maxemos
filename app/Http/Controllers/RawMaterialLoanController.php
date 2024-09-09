@@ -197,7 +197,8 @@ class RawMaterialLoanController extends Controller
                             <th class="'.$TBLLTHCLS.'">No. of days of late charges</th>                                
                             <th class="'.$TBLLTHCLS.'">Principle Deposit</th>
                             <th class="'.$TBLLTHCLS.'">Tenure </th>';
-                        $htmlStr .='<th class="'.$TBLLTHCLS.'">Invoice No. </th>';
+                        $htmlStr .='<th class="'.$TBLLTHCLS.'">Invoice No. </th>
+                        <th class="'.$TBLLTHCLS.'">Customer UTR </th>';
                     }else if($filterType=='debit'){
                         $htmlStr .=' <th class="'.$TBLLTHCLS.'">Amount</th>
                             <th class="'.$TBLLTHCLS.'">Transaction Id</th>
@@ -205,7 +206,8 @@ class RawMaterialLoanController extends Controller
                             <th class="'.$TBLLTHCLS.'">Transaction Date </th>
                             <th class="'.$TBLLTHCLS.'">Tenure </th>
                             <th class="'.$TBLLTHCLS.'">Status </th>';
-                        $htmlStr .='<th class="'.$TBLLTHCLS.'">Invoice No. </th>';
+                        $htmlStr .='<th class="'.$TBLLTHCLS.'">Invoice No. </th>
+                        <th class="'.$TBLLTHCLS.'">Customer UTR </th>';
                     }else if($filterType=='credit'){
                         $htmlStr .=' <th class="'.$TBLLTHCLS.'">Opening Date</th>
                             <th class="'.$TBLLTHCLS.'">Opening Amount</th>
@@ -226,7 +228,8 @@ class RawMaterialLoanController extends Controller
                             <th class="'.$TBLLTHCLS.'">Opening Date</th>
                             <th class="'.$TBLLTHCLS.'">Due Date</th>
                             <th class="'.$TBLLTHCLS.'">Due Amount </th>';
-                        $htmlStr .='<th class="'.$TBLLTHCLS.'">Invoice No. </th>';
+                        $htmlStr .='<th class="'.$TBLLTHCLS.'">Invoice No. </th>
+                        <th class="'.$TBLLTHCLS.'">Customer UTR </th>';
                     }
              $htmlStr .='<th class="'.$TBLLTHCLS.'">Created Date</th>
               </tr>
@@ -302,7 +305,14 @@ class RawMaterialLoanController extends Controller
                                         <td>'.$lrow->tenureName.'</td>';
                                         $invNumber=($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
                                         if($invNumber){
-                                            $htmlStr .='<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="'.$lrow->invoiceNumber.'" data-invoiceFile="'.$lrow->invoiceFile.'" data-drawDownFormFile="'.$lrow->drawDownFormFile.'" id="rawFile'.$lrow->id.'" onclick="openInvFiles('.$lrow->id.');" >'.$invNumber.'</a></td>';
+                                            $htmlStr .='<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="'.$lrow->invoiceNumber.'" data-invoiceFile="'.$lrow->invoiceFile.'" data-drawDownFormFile="'.$lrow->drawDownFormFile.'" data-utrName="'.$lrow->utr_name.'" data-utrFile="'.$lrow->utr_file.'"  id="rawFile'.$lrow->id.'" onclick="openInvFiles('.$lrow->id.');" >'.$invNumber.'</a></td>';
+                                        }else{
+                                            $htmlStr .='<td></td>';
+                                        }
+
+                                        $utr_name=($lrow->utr_name) ? $lrow->utr_name : '';
+                                        if($utr_name){
+                                            $htmlStr .='<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="'.$lrow->invoiceNumber.'" data-invoiceFile="'.$lrow->invoiceFile.'" data-drawDownFormFile="'.$lrow->drawDownFormFile.'" data-utrName="'.$lrow->utr_name.'" data-utrFile="'.$lrow->utr_file.'"  id="rawFile'.$lrow->id.'" onclick="openInvFiles('.$lrow->id.');" >'.$lrow->utr_name.'</a></td>';
                                         }else{
                                             $htmlStr .='<td></td>';
                                         }
@@ -320,10 +330,17 @@ class RawMaterialLoanController extends Controller
                                     <td>'.$debitStatus.'</td>';
                                     $invNumber=($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
                                     if($invNumber){
-                                            $htmlStr .='<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="'.$lrow->invoiceNumber.'" data-invoiceFile="'.$lrow->invoiceFile.'" data-drawDownFormFile="'.$lrow->drawDownFormFile.'" id="rawFile'.$lrow->id.'" onclick="openInvFiles('.$lrow->id.');" >'.$invNumber.'</a></td>';
-                                        }else{
-                                            $htmlStr .='<td></td>';
-                                        }
+                                        $htmlStr .='<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="'.$lrow->invoiceNumber.'" data-invoiceFile="'.$lrow->invoiceFile.'" data-drawDownFormFile="'.$lrow->drawDownFormFile.'" data-utrName="'.$lrow->utr_name.'" data-utrFile="'.$lrow->utr_file.'" id="rawFile'.$lrow->id.'" onclick="openInvFiles('.$lrow->id.');" >'.$invNumber.'</a></td>';
+                                    }else{
+                                        $htmlStr .='<td></td>';
+                                    }
+
+                                    $utr_name=($lrow->utr_name) ? $lrow->utr_name : '';
+                                    if($utr_name){
+                                        $htmlStr .='<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="'.$lrow->invoiceNumber.'" data-invoiceFile="'.$lrow->invoiceFile.'" data-drawDownFormFile="'.$lrow->drawDownFormFile.'" data-utrName="'.$lrow->utr_name.'" data-utrFile="'.$lrow->utr_file.'"  id="rawFile'.$lrow->id.'" onclick="openInvFiles('.$lrow->id.');" >'.$lrow->utr_name.'</a></td>';
+                                    }else{
+                                        $htmlStr .='<td></td>';
+                                    }
                             }else if($filterType=='credit'){
                                 $htmlStr .='<td>'.$openingdate.'</td>
                                         <td>'. number_format($lrow->openingBalance,2).'</td>
@@ -348,6 +365,12 @@ class RawMaterialLoanController extends Controller
                                 $invNumber=($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
                                 if($invNumber){
                                     $htmlStr .='<td><a href="javascript:;" style="color:blue;" data-invoiceNumber="'.$lrow->invoiceNumber.'" data-invoiceFile="'.$lrow->invoiceFile.'" data-drawDownFormFile="'.$lrow->drawDownFormFile.'" id="rawFile'.$lrow->id.'" onclick="openInvFiles('.$lrow->id.');" >'.$invNumber.'</a></td>';
+                                }else{
+                                    $htmlStr .='<td></td>';
+                                }
+                                $utr_name=($lrow->utr_name) ? $lrow->utr_name : '';
+                                if($utr_name){
+                                    $htmlStr .='<td><a href="javascript:;" style="color:blue;" data-utrName="'.$lrow->utr_name.'" data-utrFile="'.$lrow->utr_file.'"  id="rawFile'.$lrow->id.'" onclick="openInvFiles('.$lrow->id.');" >'.$lrow->utr_name.'</a></td>';
                                 }else{
                                     $htmlStr .='<td></td>';
                                 }
@@ -438,7 +461,7 @@ class RawMaterialLoanController extends Controller
                     // AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "Loan Rejected | " . $verifyWith, $htmlStAdmin);
                 } else {
                     AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
-                    AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
+                    // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
                     // AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Rejected | " . $verifyWith, $htmlStAdmin);
                 }
                 echo json_encode(['status'=>'success','message'=>'Disburse request has been schedule successfully.']); exit;
@@ -451,81 +474,93 @@ class RawMaterialLoanController extends Controller
     
     public function disburseRawMaterialAppliedLoans(Request $request)
     {
-        $loanId=$request->actionLoanId;
-        
-        $isValidated=AppServiceProvider::validatePermission('rawmaterial-disburse-amount');
-        $amount=$request->processAmount;
-        $transactionId=$request->transactionId;
-        $payment_mode=$request->payment_mode;
-        //$approvedTenure=$request->approveTenure;
-
-        $processDate=(strtotime($request->processDate)) ? date('Y-m-d',strtotime($request->processDate)) : '';
-
-        $loanDtl=ApplyLoanHistory::where('id',$loanId)->first();
-        $approvedTenure=$loanDtl->approvedTenure;
-        $userId=$loanDtl->userId;
-        $tenureDtl=Tenure::where('id',$approvedTenure)->first();
-
-        $availableArr=CommonController::checkAvailableAmountLimitRawMaterial($userId,$loanId);
-        $availableLimit=$availableArr['availableLimit'];
-        if($amount>$availableLimit){
-            echo json_encode(['status'=>'error','message'=>'Please enter the amount lower than available limit.']); exit;
-        }
-
-        $tenureDueDate='';
-        if(!empty($tenureDtl))
-        {
-            $tenureDueDate=date('Y-m-d',strtotime($processDate .' +'.$tenureDtl->numOfMonths));
-        }
-        $lastloanRequest = DB::table('raw_materials_loan_requests')->where(['loanId'=>$loanId,'status'=>'disburse-scheduled'])->orderBy('updated_at','DESC')->first();
-        
-        
-        $invoiceFile=$lastloanRequest->invoiceFile??'';
-        if(!empty($request->invoiceFile)){
-            $invoiceFile=AppServiceProvider::uploadImageCustom('invoiceFile','raw-materials');
-        }
-        
-        $drawDownFormFile=$lastloanRequest->drawDownFormFile??'';
-        if(!empty($request->drawDownFormFile)){
-            $drawDownFormFile=AppServiceProvider::uploadImageCustom('drawDownFormFile','raw-materials');
-        }
-
-        $currentDate=date('Y-m-d H:i:s');
-        $saveArr['loanId']=$loanId;
-        $saveArr['userId']=$userId;
-        $saveArr['amount']=$amount;
-        $saveArr['status']='success';
-        $saveArr['transactionId']=$transactionId;
-        $saveArr['payment_mode']=$payment_mode;
-        $saveArr['transactionId']=$transactionId;
-        $saveArr['openingDate']=$processDate;
-        $saveArr['transactionDate']=$processDate;
-        $saveArr['outstandingBalance']=$amount;
-        $saveArr['openingBalanceLatest']=$amount;
-        $saveArr['interestStartDate']=$processDate;
-        $saveArr['approvedTenure']=$approvedTenure;
-        $saveArr['tenureDueDate']=$tenureDueDate;
-        $saveArr['invoiceNumber']=($request->invoiceNumber) ? $request->invoiceNumber : $lastloanRequest->invoiceNumber;
-        $saveArr['invoiceFile']=$invoiceFile;
-        $saveArr['drawDownFormFile']=$drawDownFormFile;
-        $saveArr['txnType']='out';
-        $saveArr['created_at']=$currentDate;
-        $saveArr['updated_at']=$currentDate;
-
-        $save=DB::table('raw_materials_txn_details')->insertGetId($saveArr);
-        if($save){
+        // dd($request->all());
+        try{
+            $loanId=$request->actionLoanId;
             
-            $verifyWith = env('APP_NAME');
-            $userDtl = User::whereId($userId)->first();
-            $htmlStAdmin = "Dear ".$userDtl->name.",<br>Your disbursement request of amount ".$lastloanRequest->loanAmount." INR has been approved for Raw material loan (LF0".$loanId.").Amount ".$amount." INR will be disburse into your account at ".$lastloanRequest->disburse_date.".<br><br>";
-            // AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant Singh",$loanRaw->amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
-            // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant Singh",$loanRaw->amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
-            AppServiceProvider::sendMail($userDtl->email, $userDtl->name,$amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+            $isValidated=AppServiceProvider::validatePermission('rawmaterial-disburse-amount');
+            $amount=$request->processAmount;
+            $transactionId=$request->transactionId;
+            $payment_mode=$request->payment_mode;
+            //$approvedTenure=$request->approveTenure;
 
-            DB::table('raw_materials_loan_requests')->where('loanId',$loanId)->update(['invoiceNumber'=>$saveArr['invoiceNumber'],'invoiceFile'=>$invoiceFile,'drawDownFormFile'=>$drawDownFormFile,'approvedAmount'=>$amount,'status'=>'disbursed']);
-            echo json_encode(['status'=>'success','message'=>'Disbursement Request Approved Successfully.']); exit;
-        }else{
-            echo json_encode(['status'=>'error','message'=>'Unable to process your request, Please try again.']); exit;
+            $processDate=(strtotime($request->processDate)) ? date('Y-m-d',strtotime($request->processDate)) : '';
+
+            $loanDtl=ApplyLoanHistory::where('id',$loanId)->first();
+            $approvedTenure=$loanDtl->approvedTenure;
+            $userId=$loanDtl->userId;
+            $tenureDtl=Tenure::where('id',$approvedTenure)->first();
+
+            $availableArr=CommonController::checkAvailableAmountLimitRawMaterial($userId,$loanId);
+            $availableLimit=$availableArr['availableLimit'];
+            if($amount>$availableLimit){
+                echo json_encode(['status'=>'error','message'=>'Please enter the amount lower than available limit.']); exit;
+            }
+
+            $tenureDueDate='';
+            if(!empty($tenureDtl))
+            {
+                $tenureDueDate=date('Y-m-d',strtotime($processDate .' +'.$tenureDtl->numOfMonths));
+            }
+            $lastloanRequest = DB::table('raw_materials_loan_requests')->where(['loanId'=>$loanId,'status'=>'disburse-scheduled'])->orderBy('updated_at','DESC')->first();
+            
+            
+            $invoiceFile=$lastloanRequest->invoiceFile??'';
+            if(!empty($request->invoiceFile)){
+                $invoiceFile=AppServiceProvider::uploadImageCustom('invoiceFile','raw-materials');
+            }
+            
+            $drawDownFormFile=$lastloanRequest->drawDownFormFile??'';
+            if(!empty($request->drawDownFormFile)){
+                $drawDownFormFile=AppServiceProvider::uploadImageCustom('drawDownFormFile','raw-materials');
+            }
+
+            $utrFile=$lastloanRequest->utr_file??'';
+            if(!empty($request->utrFile)){
+                $utrFile=AppServiceProvider::uploadImageCustom('utrFile','raw-materials');
+            }
+
+            $currentDate=date('Y-m-d H:i:s');
+            $saveArr['loanId']=$loanId;
+            $saveArr['userId']=$userId;
+            $saveArr['amount']=$amount;
+            $saveArr['status']='success';
+            $saveArr['transactionId']=$transactionId;
+            $saveArr['payment_mode']=$payment_mode;
+            $saveArr['transactionId']=$transactionId;
+            $saveArr['openingDate']=$processDate;
+            $saveArr['transactionDate']=$processDate;
+            $saveArr['outstandingBalance']=$amount;
+            $saveArr['openingBalanceLatest']=$amount;
+            $saveArr['interestStartDate']=$processDate;
+            $saveArr['approvedTenure']=$approvedTenure;
+            $saveArr['tenureDueDate']=$tenureDueDate;
+            $saveArr['invoiceNumber']=($request->invoiceNumber) ? $request->invoiceNumber : $lastloanRequest->invoiceNumber;
+            $saveArr['invoiceFile']=$invoiceFile;
+            $saveArr['drawDownFormFile']=$drawDownFormFile;
+            $saveArr['utr_name']=$request->utrName??null;
+            $saveArr['utr_file']=$utrFile;
+            $saveArr['txnType']='out';
+            $saveArr['created_at']=$currentDate;
+            $saveArr['updated_at']=$currentDate;
+
+            $save=DB::table('raw_materials_txn_details')->insertGetId($saveArr);
+            if($save){
+                
+                $verifyWith = env('APP_NAME');
+                $userDtl = User::whereId($userId)->first();
+                $htmlStAdmin = "Dear ".$userDtl->name.",<br>Your disbursement request of amount ".$lastloanRequest->loanAmount." INR has been approved for Raw material loan (LF0".$loanId.").Amount ".$amount." INR will be disburse into your account at ".$lastloanRequest->disburse_date.".<br><br>";
+                // AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant Singh",$loanRaw->amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+                // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant Singh",$loanRaw->amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+                AppServiceProvider::sendMail($userDtl->email, $userDtl->name,$amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+
+                DB::table('raw_materials_loan_requests')->where('loanId',$loanId)->update(['invoiceNumber'=>$saveArr['invoiceNumber'],'invoiceFile'=>$invoiceFile,'drawDownFormFile'=>$drawDownFormFile,'approvedAmount'=>$amount,'status'=>'disbursed']);
+                echo json_encode(['status'=>'success','message'=>'Disbursement Request Approved Successfully.']); exit;
+            }else{
+                echo json_encode(['status'=>'error','message'=>'Unable to process your request, Please try again.']); exit;
+            }
+        }catch (\Exception $e) {
+            return $e->getMessage();
         }
     }
 
@@ -780,7 +815,7 @@ class RawMaterialLoanController extends Controller
                     // AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "Loan Rejected | " . $verifyWith, $htmlStAdmin);
                 } else {
                     AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$lastloanRequestData->loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
-                    AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$lastloanRequestData->loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
+                    // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$lastloanRequestData->loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
                     // AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Rejected | " . $verifyWith, $htmlStAdmin);
                 }
                     echo json_encode(['status'=>'success','message'=>'Disburse request has been schedule successfully.']); exit;

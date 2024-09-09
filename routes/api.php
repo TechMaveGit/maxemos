@@ -26,7 +26,7 @@ Route::match(['get', 'post'],'/enash-failed',[EmiWebhookController::class,'easeb
 //     Storage::disk('local')->put('enash-failed'.time().'.txt', $request->getContent());
 //     Storage::disk('local')->put('enash-failed'.time().'.json', $request->getContent());
 // });
-Route::post('ocr_adhaar_verification',[CustomerController::class,'ocr_adhaar_verification'])->name('ocr_adhaar_verification');
+//Route::post('ocr_adhaar_verification',[CustomerController::class,'ocr_adhaar_verification'])->name('ocr_adhaar_verification');
 
 //Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 //    return $request->user();

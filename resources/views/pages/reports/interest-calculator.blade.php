@@ -170,7 +170,7 @@
 
                                         <div class="form-group mb-3">
                                             <label class="title">Transaction Date</label>
-                                            <input id="dateOfBirthE" name="dateOfBirth" id="transactionDate" x-flatpickr=""
+                                            <input id="dateOfBirthE" name="transactionDate"  x-flatpickr=""
                                                 class="form-control mt-1.5  w-full rounded-lg required_fields flatpickr-input"
                                                 placeholder="Choose date..." type="text" readonly="readonly">
                                         </div>
@@ -243,7 +243,7 @@
             let customer = $("#selectCustomer").val();
             let loan = $("#selectLoans").val();
             let payamount = $("#payamount").val();
-            let transactionDate = $("#transactionDate").val();
+            let transactionDate = $("#dateOfBirthE").val();
 
             if(validateFormByDiv('FormCalculate')){
                 $.post('{{ route('interestCalculatorData') }}', {

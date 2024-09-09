@@ -209,7 +209,7 @@
                 <form method="POST" enctype="multipart/form-data" id="disburseModalAdminFrm">
                     <input type="hidden" id="actionLoanId" name="actionLoanId">
                     @csrf
-                    <div id="initiateApplyLoanModalBodyRaw">
+                    <div id="initiateApplyLoanModalBodyRaw" class="row">
                         <div class="col-lg-12 mt-3">
                             <label><strong>Disburse Amount</strong></label>
                             <input type="number" id="processAmount" name="processAmount" value="" class="form-control">
@@ -238,6 +238,17 @@
                             <label><strong>Upload Draw Down Form</strong> <a class="btn btn-sm btn-link"  id="viewdrawDownFormFile" href="" target="_blank">View File</a></label>
                             <input type="file" id="drawDownFormFile" value="" name="drawDownFormFile" class="form-control">
                         </div>
+
+                        <div class="col-lg-6 mt-3">
+                            <label><strong>UTR Name</strong> </label>
+                            <input type="text" id="utrName" value="" name="utrName" class="form-control">
+                        </div>
+                        <div class="col-lg-6 mt-3">
+                            <label><strong>UTR File</strong> <a class="btn btn-sm btn-link" style="padding: 0px" id="viewUtrFile" href="" target="_blank">View File</a></label>
+                            <input type="file" id="utrFile" value="" name="utrFile" class="form-control">
+                        </div>
+
+                        
                         
                     </div>
                 </form>

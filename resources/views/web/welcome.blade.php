@@ -1,4 +1,4 @@
-@extends('web.layout.main')
+@extends('web.layout.main1')
 @section('content')
 <style>
     .userpimg img{

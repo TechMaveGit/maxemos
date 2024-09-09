@@ -25,8 +25,8 @@ class EMIController extends Controller
         $loanDetails=ApplyLoanHistory::where('id',$loanId)->first();
 
         $disbursedDate= date('d-m-Y',strtotime($request->current_month));
-        $currentDayOfMonth=(int)date("d", strtotime($disbursedDate));
-        if($currentDayOfMonth == 4 || $currentDayOfMonth == 5){
+        $currentDayOfMonth=(int)date("d", strtotime($disbursedDate))-1;
+        if($currentDayOfMonth == 4){
             $extraAmountDays=0;
             $disbursedDate= date('d-m-Y',strtotime($request->current_month.'-1 month'));
         }elseif($currentDayOfMonth < 4){
@@ -35,8 +35,8 @@ class EMIController extends Controller
         }else{
             $lastDayOfMonth=date("t", strtotime($disbursedDate))+5;
             $extraAmountDays=$lastDayOfMonth-$currentDayOfMonth;
-            
         }
+
         
         $htmldata = '';
 
@@ -49,6 +49,9 @@ class EMIController extends Controller
             
             $roiType=$loanDetails->roiType;
             
+            // if(($roiType=='reducing_roi' || $roiType=='fixed_interest_roi' || $roiType=='bullet_repayment')){
+            //     $skipMonths=' +0 Month';
+            // }else 
             if($roiType=='reducing_roi' || $roiType=='fixed_interest_roi' || $roiType=='bullet_repayment'){
                 $skipMonths=' +1 Month';
             }else{
@@ -59,31 +62,12 @@ class EMIController extends Controller
                 }
             }
             
-            if($roiType=='quaterly_interest'){
-                $emiLabelMonth='Quarterly Emi';
-            }else if($roiType=='reducing_roi'){
-                $emiLabelMonth='Monthly EMI';
-            }else{
-                $emiLabelMonth='EMI';
-            }
             
-            $monthlyEMI=$loanDetails->monthlyEMI;
-            $totalInterest=$loanDetails->totalInterest;
-
-            $approvedTenureText='';
             $tenureDtl=Tenure::where('id',$loanDetails->approvedTenure)->first();
-            if(!empty($tenureDtl)){
-                $approvedTenureText=$tenureDtl->name;
-            }
-
-            $plateformFee=0;
-            $insurance=0;
+            
             $principleChargesDetailsStr=$loanDetails->principleChargesDetails;
             $principleChargesDetailsArr=json_decode($principleChargesDetailsStr);
-            if(!empty($principleChargesDetailsArr)){
-                $plateformFee=$principleChargesDetailsArr->plateformFee;
-                $insurance=$principleChargesDetailsArr->insurance;
-            }
+           
             $emisDetailsStr = null;
             
             if($loanDetails->loanCategory==8)
@@ -95,24 +79,17 @@ class EMIController extends Controller
                 $interestStartDate=$disbursedDate;
                 if($roiType=='quaterly_interest')
                 {
-                    $monthlyEmiLabel='Quarterly EMI';
                     $emisDetailsArr=$objComm->getQuarterlyDaysWiseEmis($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$interestStartDate,$loanDetails->tds);
                     $extraIntrestAmount=0;
                     $extraAmountDays=0;
                 }else if($roiType=='fixed_interest_roi')
                 {
-                    $monthlyEmiLabel='Monthly EMI';
                     $emisDetailsArr=$objComm->getFixedInterestDaysWiseEmis($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$interestStartDate,$loanDetails->tds);
                     $extraIntrestAmount=$emisDetailsArr['extraDaysInterest'];
                     $extraAmountDays=$emisDetailsArr['extraNumDays'];
                 }
                 // dd($emisDetailsArr,array_sum(array_column($emisDetailsArr['emiList'],'netInterest')));
                 
-                
-                $monthlyEMI=$emisDetailsArr['emiAmount'];
-                $totalInterest=$emisDetailsArr['totalInterest'];
-                //$netDisbursementAmount=$loanDetails->netDisbursementAmount-$extraIntrestAmount;
-                $netDisbursementAmount=$loanDetails->netDisbursementAmount;
                 $emisDetailsStr= json_encode($emisDetailsArr);
                 // ApplyLoanHistory::where('id',$loanId)->update(['extraAmountDays'=>$extraAmountDays,'extraIntrestAmount'=>$extraIntrestAmount]);
             }else{
@@ -127,22 +104,21 @@ class EMIController extends Controller
                 $objComm=new CommonController();
                 if($roiType=='reducing_roi')
                 {
-                    $monthlyEmiLabel='Monthly EMI';
-                    $emisDetailsArr=$objComm->getEmisPMT($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds);
+                    $emisDetailsArr=$objComm->getEmisPMT($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds,$loanDetails->paidInterest);
                 }else if($roiType=='quaterly_interest')
                 {
-                    $monthlyEmiLabel='Quarterly EMI';
                     $emisDetailsArr=$objComm->getQuarterlyEmis($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds);
                 }else if($roiType=='fixed_interest_roi')
                 {
-                    $monthlyEmiLabel='Monthly EMI';
-                    $emisDetailsArr=$objComm->getFixedInterestEmis($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds);
+                    $emisDetailsArr=$objComm->getFixedInterestEmis($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds,$loanDetails->paidInterest);
                 }
-                // $netDisbursementAmount=$loanDetails->netDisbursementAmount-$extraIntrestAmount;
-                $netDisbursementAmount=$loanDetails->netDisbursementAmount;
                 $emisDetailsStr= json_encode($emisDetailsArr);
+                
             }
-            ApplyLoanHistory::where('id',$loanId)->update(['extraAmountDays'=>$extraAmountDays,'extraIntrestAmount'=>$extraIntrestAmount]);
+            // 'paidInterest'=>$paidInterest
+             $paidInterest = $emisDetailsArr['totalInterest']+$extraIntrestAmount;
+            // dd(,$emisDetailsArr);
+            ApplyLoanHistory::where('id',$loanId)->update(['extraAmountDays'=>$extraAmountDays,'extraIntrestAmount'=>$extraIntrestAmount,'paidInterest'=>$paidInterest]);
             $htmldata .= '<div class="row m-3 text-center" style="border: 4px solid gainsboro;padding: 10px;text-align: center;">
             <div class="col-md-12 mb-3" style="padding: 10px 0px;background: #ecd8ff;"><p style="font-size:22px;font-weight: 600;">Preview</p></div>
             <div class="col-md-6">
@@ -229,7 +205,7 @@ class EMIController extends Controller
 
         }
 
-        return ['htmldata'=>$htmldata,'extradays'=>$extraIntrestAmount];
+        return ['htmldata'=>$htmldata,'extradays'=>$extraIntrestAmount,'paidInterest'=>round($paidInterest,2)];
     }
 
 
@@ -1135,7 +1111,7 @@ class EMIController extends Controller
                 if($roiType=='reducing_roi')
                 {
                     $monthlyEmiLabel='Monthly EMI';
-                    $emisDetailsArr=$objComm->getEmisPMT($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds);
+                    $emisDetailsArr=$objComm->getEmisPMT($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds,$loanDetails->paidInterest);
                 }else if($roiType=='quaterly_interest')
                 {
                     $monthlyEmiLabel='Quarterly EMI';
@@ -1143,7 +1119,7 @@ class EMIController extends Controller
                 }else if($roiType=='fixed_interest_roi')
                 {
                     $monthlyEmiLabel='Monthly EMI';
-                    $emisDetailsArr=$objComm->getFixedInterestEmis($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds);
+                    $emisDetailsArr=$objComm->getFixedInterestEmis($numOfEmis,$rateOfInterest,$approvedAmount,$payment_date,$loanDetails->tds,$loanDetails->paidInterest);
                 }
                
                 $processed=ApplyLoanHistory::where('id',$loanId)->update(['bankId'=>$cashBank,'status'=>'disbursed','extraAmountDays'=>$extraAmountDays,'extraIntrestAmount'=>$extraIntrestAmount,'disbursedDate'=>($loanDetails->disbursedDate ?? $disbursedDate)]);

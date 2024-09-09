@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\LoanEmiDetail;
 use DateTime;
-use DB;
 use stdClass;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ExportController extends Controller
 {
@@ -67,14 +68,14 @@ class ExportController extends Controller
                         $subQueryCondi = "(CASE WHEN `transactionDate` IS NULL THEN (emiDate <= '$request->toDate') ELSE (transactionDate <= '$request->toDate') END)";
                     }
 
-                    $querys .= "IFNULL((SELECT IFNULL(extraIntrestAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (alh.status='disbursed' OR alh.status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as extraIntrestAmount,IFNULL((SELECT IFNULL(principleCharges,0) FROM apply_loan_histories WHERE id=alh.id AND (alh.status='disbursed' OR alh.status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as principleCharges,IFNULL((SELECT IFNULL(disbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as paidDisbursementAmount,(SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND  $subQueryCondi) as principleDeposited,(SELECT  IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as interestPaid,IFNULL((SELECT IFNULL(netDisbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) - (SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1 ";
+                    $querys .= "IFNULL((SELECT IFNULL(extraIntrestAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (alh.status='disbursed' OR alh.status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as extraIntrestAmount,IFNULL((SELECT IFNULL(principleCharges,0) FROM apply_loan_histories WHERE id=alh.id AND (alh.status='disbursed' OR alh.status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as principleCharges,alh.principleChargesDetails,IFNULL((SELECT IFNULL(disbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as paidDisbursementAmount,(SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND  $subQueryCondi) as principleDeposited,(SELECT  IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as interestPaid,IFNULL((SELECT IFNULL(netDisbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) - (SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1 ";
 
                     if (isset($loanIds) && !empty($loanIds)) {
                         $strLoanIds  = implode(',', $loanIds);
                         $querys .= " AND alh.id IN ($strLoanIds)";
                     }
                 } else {
-                    $querys .= "alh.extraIntrestAmount,alh.principleCharges,alh.netDisbursementAmount,alh.disbursementAmount AS paidDisbursementAmount,(SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success') as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' ) as interestPaid,(alh.netDisbursementAmount - (SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success')) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1 ";
+                    $querys .= "alh.extraIntrestAmount,alh.principleCharges,alh.principleChargesDetails,alh.netDisbursementAmount,alh.disbursementAmount AS paidDisbursementAmount,(SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success') as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' ) as interestPaid,(alh.netDisbursementAmount - (SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success')) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1 ";
                 }
 
                 $querys .= " AND alh.loanCategory=1  AND (alh.status='disbursed' OR alh.status='closed') ORDER BY alh.id DESC";
@@ -84,30 +85,30 @@ class ExportController extends Controller
                 $results = DB::select($querys);
             }
             if ($request->loanreportFilter == 2 || $request->loanreportFilter == "none") {
-                if($request->fromDate && $request->toDate){
+                if ($request->fromDate && $request->toDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN loan_emi_details ON loan_emi_details.loanId=apply_loan_histories.id  WHERE (loan_emi_details.emiDate BETWEEN '$request->fromDate' AND '$request->toDate') OR (apply_loan_histories.disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate')");
-                    $allloans = array_unique(array_column($allloan,'a_loanId'));
-                  
+                    $allloans = array_unique(array_column($allloan, 'a_loanId'));
+
                     $allloanEmiId = DB::select("SELECT loanId FROM loan_emi_details WHERE status='success' AND (CASE WHEN `transactionDate` IS NULL THEN (emiDate BETWEEN '$request->fromDate' AND '$request->toDate') ELSE (transactionDate BETWEEN '$request->fromDate' AND '$request->toDate') END)");
-                    $allloanEmiIds = array_unique(array_column($allloanEmiId,'loanId'));
-                  
-                      $loanIds = array_merge($allloans,$allloanEmiIds);
-                }elseif($request->fromDate){
+                    $allloanEmiIds = array_unique(array_column($allloanEmiId, 'loanId'));
+
+                    $loanIds = array_merge($allloans, $allloanEmiIds);
+                } elseif ($request->fromDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN loan_emi_details ON loan_emi_details.loanId=apply_loan_histories.id  WHERE (loan_emi_details.emiDate >= '$request->fromDate') OR (apply_loan_histories.disbursedDate >= '$request->fromDate')");
-                    $allloans = array_unique(array_column($allloan,'a_loanId'));
-                  
+                    $allloans = array_unique(array_column($allloan, 'a_loanId'));
+
                     $allloanEmiId = DB::select("SELECT loanId FROM loan_emi_details WHERE status='success' AND (CASE WHEN `transactionDate` IS NULL THEN (emiDate BETWEEN '$request->fromDate' AND '$request->toDate') ELSE (transactionDate BETWEEN '$request->fromDate' AND '$request->toDate') END)");
-                    $allloanEmiIds = array_unique(array_column($allloanEmiId,'loanId'));
-                  
-                      $loanIds = array_merge($allloans,$allloanEmiIds);
-                }elseif($request->toDate){
+                    $allloanEmiIds = array_unique(array_column($allloanEmiId, 'loanId'));
+
+                    $loanIds = array_merge($allloans, $allloanEmiIds);
+                } elseif ($request->toDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN loan_emi_details ON loan_emi_details.loanId=apply_loan_histories.id  WHERE (loan_emi_details.emiDate <= '$request->toDate') OR (apply_loan_histories.disbursedDate <= '$request->toDate')");
-                    $allloans = array_unique(array_column($allloan,'a_loanId'));
-                  
+                    $allloans = array_unique(array_column($allloan, 'a_loanId'));
+
                     $allloanEmiId = DB::select("SELECT loanId FROM loan_emi_details WHERE status='success' AND (CASE WHEN `transactionDate` IS NULL THEN (emiDate BETWEEN '$request->fromDate' AND '$request->toDate') ELSE (transactionDate BETWEEN '$request->fromDate' AND '$request->toDate') END)");
-                    $allloanEmiIds = array_unique(array_column($allloanEmiId,'loanId'));
-                  
-                      $loanIds = array_merge($allloans,$allloanEmiIds);
+                    $allloanEmiIds = array_unique(array_column($allloanEmiId, 'loanId'));
+
+                    $loanIds = array_merge($allloans, $allloanEmiIds);
                 }
 
 
@@ -123,13 +124,13 @@ class ExportController extends Controller
                         $subQueryCondi = "(CASE WHEN `transactionDate` IS NULL THEN (emiDate <= '$request->toDate') ELSE (transactionDate <= '$request->toDate') END)";
                     }
 
-                    $querys .= "IFNULL((SELECT IFNULL(extraIntrestAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (alh.status='disbursed' OR alh.status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as extraIntrestAmount,IFNULL((SELECT IFNULL(principleCharges,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as principleCharges,IFNULL((SELECT IFNULL(disbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as paidDisbursementAmount,(SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as interestPaid,(IFNULL((SELECT IFNULL(netDisbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) - (SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi)) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1 ";
+                    $querys .= "IFNULL((SELECT IFNULL(extraIntrestAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (alh.status='disbursed' OR alh.status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as extraIntrestAmount,IFNULL((SELECT IFNULL(principleCharges,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as principleCharges,alh.principleChargesDetails,IFNULL((SELECT IFNULL(disbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as paidDisbursementAmount,(SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as interestPaid,(IFNULL((SELECT IFNULL(netDisbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) - (SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi)) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1 ";
                     if (isset($loanIds) && !empty($loanIds)) {
                         $strLoanIds  = implode(',', $loanIds);
                         $querys .= " AND alh.id IN ($strLoanIds)";
                     }
                 } else {
-                    $querys .= "alh.extraIntrestAmount,alh.netDisbursementAmount,alh.disbursementAmount AS paidDisbursementAmount,alh.principleCharges,(SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success') as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' ) as interestPaid,(alh.netDisbursementAmount - (SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success')) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1 ";
+                    $querys .= "alh.extraIntrestAmount,alh.netDisbursementAmount,alh.disbursementAmount AS paidDisbursementAmount,alh.principleCharges,alh.principleChargesDetails,(SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success') as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' ) as interestPaid,(alh.netDisbursementAmount - (SELECT IFNULL(SUM(principle),0) FROM loan_emi_details WHERE loanId=alh.id AND status='success')) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1 ";
                 }
 
                 $querys .= " AND alh.loanCategory=2  AND (alh.status='disbursed' OR alh.status='closed') ORDER BY alh.id DESC";
@@ -151,6 +152,7 @@ class ExportController extends Controller
                         $results[$nowcount]->disbursedDate = $rsdata->disbursedDate;
                         $results[$nowcount]->paidDisbursementAmount = $rsdata->paidDisbursementAmount;
                         $results[$nowcount]->principleCharges = $rsdata->principleCharges;
+                        $results[$nowcount]->principleChargesDetails = $rsdata->principleChargesDetails;
                         $results[$nowcount]->extraIntrestAmount = $rsdata->extraIntrestAmount;
                         $results[$nowcount]->principleDeposited = $rsdata->principleDeposited;
                         $results[$nowcount]->interestPaid = $rsdata->interestPaid;
@@ -164,15 +166,15 @@ class ExportController extends Controller
             }
             if ($request->loanreportFilter == 3 || $request->loanreportFilter == "none") {
 
-                if($request->fromDate && $request->toDate){
+                if ($request->fromDate && $request->toDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN raw_materials_txn_details ON raw_materials_txn_details.loanId=apply_loan_histories.id  WHERE (raw_materials_txn_details.transactionDate BETWEEN '$request->fromDate' AND '$request->toDate' OR raw_materials_txn_details.id IS NULL) AND apply_loan_histories.loanCategory=3  AND apply_loan_histories.status='customer-approved'");
-                    $loanIds = array_unique(array_column($allloan,'a_loanId'));
-                }elseif($request->fromDate){
+                    $loanIds = array_unique(array_column($allloan, 'a_loanId'));
+                } elseif ($request->fromDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN raw_materials_txn_details ON raw_materials_txn_details.loanId=apply_loan_histories.id  WHERE (raw_materials_txn_details.transactionDate >= '$request->fromDate' OR raw_materials_txn_details.id IS NULL) AND apply_loan_histories.loanCategory=3  AND apply_loan_histories.status='customer-approved'");
-                    $loanIds = array_unique(array_column($allloan,'a_loanId'));
-                }elseif($request->toDate){
+                    $loanIds = array_unique(array_column($allloan, 'a_loanId'));
+                } elseif ($request->toDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN raw_materials_txn_details ON raw_materials_txn_details.loanId=apply_loan_histories.id  WHERE (raw_materials_txn_details.transactionDate <= '$request->toDate' OR raw_materials_txn_details.id IS NULL) AND apply_loan_histories.loanCategory=3  AND apply_loan_histories.status='customer-approved'");
-                    $loanIds = array_unique(array_column($allloan,'a_loanId'));
+                    $loanIds = array_unique(array_column($allloan, 'a_loanId'));
                 }
 
                 $querys = "SELECT alh.id,u.id as userId,u.name,u.customerCode,alh.validFromDate as disbursedDate,alh.approvedAmount,(SELECT IFNULL(name,'NA') FROM categories WHERE id=alh.loanCategory) AS loanName,";
@@ -216,30 +218,30 @@ class ExportController extends Controller
             }
             if ($request->loanreportFilter == 0 || $request->loanreportFilter == "none") {
 
-                if($request->fromDate && $request->toDate){
+                if ($request->fromDate && $request->toDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN loan_emi_details ON loan_emi_details.loanId=apply_loan_histories.id  WHERE (loan_emi_details.emiDate BETWEEN '$request->fromDate' AND '$request->toDate') OR (apply_loan_histories.disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate')");
-                    $allloans = array_unique(array_column($allloan,'a_loanId'));
-                  
+                    $allloans = array_unique(array_column($allloan, 'a_loanId'));
+
                     $allloanEmiId = DB::select("SELECT loanId FROM loan_emi_details WHERE status='success' AND (CASE WHEN `transactionDate` IS NULL THEN (emiDate BETWEEN '$request->fromDate' AND '$request->toDate') ELSE (transactionDate BETWEEN '$request->fromDate' AND '$request->toDate') END)");
-                    $allloanEmiIds = array_unique(array_column($allloanEmiId,'loanId'));
-                  
-                      $loanIds = array_merge($allloans,$allloanEmiIds);
-                }elseif($request->fromDate){
+                    $allloanEmiIds = array_unique(array_column($allloanEmiId, 'loanId'));
+
+                    $loanIds = array_merge($allloans, $allloanEmiIds);
+                } elseif ($request->fromDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN loan_emi_details ON loan_emi_details.loanId=apply_loan_histories.id  WHERE (loan_emi_details.emiDate >= '$request->fromDate')  OR (apply_loan_histories.disbursedDate >= '$request->fromDate')");
-                    $allloans = array_unique(array_column($allloan,'a_loanId'));
-                  
+                    $allloans = array_unique(array_column($allloan, 'a_loanId'));
+
                     $allloanEmiId = DB::select("SELECT loanId FROM loan_emi_details WHERE status='success' AND (CASE WHEN `transactionDate` IS NULL THEN (emiDate BETWEEN '$request->fromDate' AND '$request->toDate') ELSE (transactionDate BETWEEN '$request->fromDate' AND '$request->toDate') END)");
-                    $allloanEmiIds = array_unique(array_column($allloanEmiId,'loanId'));
-                  
-                      $loanIds = array_merge($allloans,$allloanEmiIds);
-                }elseif($request->toDate){
+                    $allloanEmiIds = array_unique(array_column($allloanEmiId, 'loanId'));
+
+                    $loanIds = array_merge($allloans, $allloanEmiIds);
+                } elseif ($request->toDate) {
                     $allloan = DB::select("SELECT apply_loan_histories.id as a_loanId FROM apply_loan_histories LEFT JOIN loan_emi_details ON loan_emi_details.loanId=apply_loan_histories.id  WHERE (loan_emi_details.emiDate <= '$request->toDate')  OR (apply_loan_histories.disbursedDate <= '$request->toDate')");
-                    $allloans = array_unique(array_column($allloan,'a_loanId'));
-                  
+                    $allloans = array_unique(array_column($allloan, 'a_loanId'));
+
                     $allloanEmiId = DB::select("SELECT loanId FROM loan_emi_details WHERE status='success' AND (CASE WHEN `transactionDate` IS NULL THEN (emiDate BETWEEN '$request->fromDate' AND '$request->toDate') ELSE (transactionDate BETWEEN '$request->fromDate' AND '$request->toDate') END)");
-                    $allloanEmiIds = array_unique(array_column($allloanEmiId,'loanId'));
-                  
-                      $loanIds = array_merge($allloans,$allloanEmiIds);
+                    $allloanEmiIds = array_unique(array_column($allloanEmiId, 'loanId'));
+
+                    $loanIds = array_merge($allloans, $allloanEmiIds);
                 }
 
                 $querys = "SELECT alh.id,u.id as userId,u.name,u.customerCode,alh.disbursedDate,alh.approvedAmount,(SELECT IFNULL(name,'NA') FROM categories WHERE id=alh.loanCategory) AS loanName,";
@@ -253,13 +255,13 @@ class ExportController extends Controller
                     } else {
                         $subQueryCondi = "(CASE WHEN `transactionDate` IS NULL THEN (emiDate <= '$request->toDate') ELSE (transactionDate <= '$request->toDate') END)";
                     }
-                    $querys .= "IFNULL((SELECT IFNULL(principleCharges,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as principleCharges,IFNULL((SELECT IFNULL(disbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as paidDisbursementAmount,(SELECT IFNULL(SUM(amount),0) FROM out_standing_payment_histories WHERE type='credit' AND loanId=alh.id AND txnDate BETWEEN '$request->fromDate' AND '$request->toDate') as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as interestPaid,(IFNULL((SELECT IFNULL(netDisbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0)-(SELECT IFNULL(SUM(amount),0) FROM out_standing_payment_histories WHERE loanId=alh.id AND type='credit')) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1";
+                    $querys .= "IFNULL((SELECT IFNULL(principleCharges,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as principleCharges,alh.principleChargesDetails,IFNULL((SELECT IFNULL(disbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0) as paidDisbursementAmount,(SELECT IFNULL(SUM(amount),0) FROM out_standing_payment_histories WHERE type='credit' AND loanId=alh.id AND txnDate BETWEEN '$request->fromDate' AND '$request->toDate') as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success' AND $subQueryCondi) as interestPaid,(IFNULL((SELECT IFNULL(netDisbursementAmount,0) FROM apply_loan_histories WHERE id=alh.id AND (status='disbursed' OR status='closed') AND disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate'),0)-(SELECT IFNULL(SUM(amount),0) FROM out_standing_payment_histories WHERE loanId=alh.id AND type='credit')) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1";
                     if (isset($loanIds) && !empty($loanIds)) {
                         $strLoanIds  = implode(',', $loanIds);
                         $querys .= " AND alh.id IN ($strLoanIds)";
                     }
                 } else {
-                    $querys .= "alh.netDisbursementAmount,alh.disbursementAmount AS paidDisbursementAmount,alh.principleCharges,(SELECT IFNULL(SUM(amount),0) FROM out_standing_payment_histories WHERE type='credit' AND loanId=alh.id) as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success') as interestPaid,(alh.netDisbursementAmount - (SELECT IFNULL(SUM(amount),0) FROM out_standing_payment_histories WHERE type='credit' AND loanId=alh.id)) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1";
+                    $querys .= "alh.netDisbursementAmount,alh.disbursementAmount AS paidDisbursementAmount,alh.principleCharges,alh.principleChargesDetails,(SELECT IFNULL(SUM(amount),0) FROM out_standing_payment_histories WHERE type='credit' AND loanId=alh.id) as principleDeposited,(SELECT IF(tdsAmount>0, IFNULL(SUM(netInterest),0), IFNULL(SUM(interest),0)) FROM loan_emi_details WHERE loanId=alh.id AND status='success') as interestPaid,(alh.netDisbursementAmount - (SELECT IFNULL(SUM(amount),0) FROM out_standing_payment_histories WHERE type='credit' AND loanId=alh.id)) as totalOutStanding FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id WHERE 1";
                 }
 
                 $querys .= " AND alh.loanCategory=8  AND (alh.status='disbursed' OR alh.status='closed') ORDER BY alh.id DESC";
@@ -279,6 +281,7 @@ class ExportController extends Controller
                         $results[$nowcount]->paidDisbursementAmount = $rsdata->paidDisbursementAmount;
                         $results[$nowcount]->extraIntrestAmount = 0;
                         $results[$nowcount]->principleCharges = $rsdata->principleCharges;
+                        $results[$nowcount]->principleChargesDetails = $rsdata->principleChargesDetails;
                         $results[$nowcount]->principleDeposited = $rsdata->principleDeposited;
                         $results[$nowcount]->interestPaid = $rsdata->interestPaid;
                         $results[$nowcount]->totalOutStanding = ($rsdata->approvedAmount - $rsdata->principleDeposited);
@@ -305,16 +308,20 @@ class ExportController extends Controller
             $disbursedDateRow = '--';
 
             foreach ($results as $k => $row) {
+
+                $principleChargesDetails = isset($row->principleChargesDetails) ? json_decode($row->principleChargesDetails,true) : null;
+                $insurace = $principleChargesDetails ? $principleChargesDetails['insurance'] : 0;
+
                 $principleDeposited = $row->principleDeposited != '' ? $row->principleDeposited : 0;
                 $interestPaid = $row->interestPaid != '' ? $row->interestPaid : 0;
                 $totalOutStanding = $row->totalOutStanding != '' ? $row->totalOutStanding :  $row->netDisbursementAmount;
                 $DisbursementAmount = $row->paidDisbursementAmount ? $row->paidDisbursementAmount : number_format(0.00, 2);
                 $disbursedDateRow = $row->disbursedDate;
 
-                $content .= ($k + 1) . ',' . $row->customerCode . ',' . $disbursedDateRow . ',' . $row->name . ',' .  $row->loanName . ','  .  $row->approvedAmount . ',' . $row->principleCharges . ',' . $row->extraIntrestAmount . ',' . $DisbursementAmount . ',' . $principleDeposited . ',' . $interestPaid . ',' . $totalOutStanding . "\r\n";
+                $content .= ($k + 1) . ',' . $row->customerCode . ',' . $disbursedDateRow . ',' . $row->name . ',' .  $row->loanName . ','  .  $row->approvedAmount . ',' . ($row->principleCharges-$insurace) . ',' . $row->extraIntrestAmount . ',' . $DisbursementAmount . ',' . $principleDeposited . ',' . $interestPaid . ',' . $totalOutStanding . "\r\n";
 
                 $totalLoanAmount += $row->approvedAmount;
-                $totalProcessingFee += $row->principleCharges;
+                $totalProcessingFee += $row->principleCharges-$insurace;
                 $totalDisbursedAmount += $DisbursementAmount;
                 $totalPrincipalDeposited += $principleDeposited;
                 $totalInterestGross += $interestPaid;
@@ -390,7 +397,7 @@ class ExportController extends Controller
                 } else {
                     $SUBQRY .= "  AND (alh.loanCategory != 3 AND alh.status='disbursed' AND ed.userId = alh.userId AND ed.status='success' AND date(ed.transactionDate)='$currentDate') OR (alh.loanCategory=3 AND alh.id IN (SELECT rmtd.loanId FROM raw_materials_txn_details AS rmtd WHERE rmtd.loanId = alh.id AND rmtd.txnType ='in' AND date(rmtd.transactionDate)='$currentDate')) ";
                 }
-            }else if ($pageNameStr == 'all-loan-list'){
+            } else if ($pageNameStr == 'all-loan-list') {
                 if ($fromDate && $toDate) {
                     $SUBQRY .= "  AND date(alh.disbursedDate)>='$fromDate' AND date(alh.disbursedDate)<='$toDate' ";
                 }
@@ -404,7 +411,7 @@ class ExportController extends Controller
                 $SUBQRY .= " AND u.status='$userStatus'";
             }
 
-            if (!in_array($pageNameStr, array('all-loan-list','received-emi', 'today-emi', 'over-due-emi')) && $fromDate && $toDate) {
+            if (!in_array($pageNameStr, array('all-loan-list', 'received-emi', 'today-emi', 'over-due-emi')) && $fromDate && $toDate) {
                 $SUBQRY .= " AND date(u.created_at)>='$fromDate' AND date(u.created_at)<='$toDate'";
             }
 
@@ -416,7 +423,7 @@ class ExportController extends Controller
             $userColumns = "u.id,u.customerCode,u.name,u.mobile,u.email,u.gender,u.profilePic,u.dateOfBirth,u.maritalStatus,u.addressLine1,u.addressLine2,u.city,u.state,u.district,u.pincode,u.userMpin,u.aadhaar_no,u.pancard_no,u.userType,u.status,u.kycStatus,u.created_at,u.updated_at";
             if ($pageNameStr == 'all-loan-list') {
                 $customers = DB::select("SELECT $userColumns,alh.id as loanId,alh.bankId as loanFromBank,alh.isAdminApproved,alh.reject_reason,alh.loanAmount appliedLoanAmount,alh.tenure as appliedTenure,alh.rateOfInterest as givenROI,alh.approvedAmount,alh.approvedAmount,alh.status as loanStatus,alh.remark,p.productCode,p.productName,p.rateOfInterest as productROI,p.tenure as productTenure,p.amount as productAmount,p.amountTo as productAmountTo,p.numOfEmi as productEMI,p.productType,c.name as categoryName,sc.name as subCategoryName FROM users u LEFT JOIN  apply_loan_histories alh ON u.id=alh.userId LEFT JOIN  employment_histories eh ON u.id=eh.userId LEFT JOIN products p ON alh.productId=p.id LEFT JOIN categories c ON alh.loanCategory=c.id LEFT JOIN subcategories sc ON p.subCategoryId=sc.id WHERE u.userType='user' AND alh.id IS NOT NULL   $SUBQRY GROUP BY $userColumns,alh.id,alh.bankId,alh.loanAmount,alh.tenure,alh.rateOfInterest,alh.approvedAmount,alh.approvedAmount,alh.status,alh.remark,p.productCode,p.productName,p.rateOfInterest,p.tenure,p.amount,p.amountTo,p.numOfEmi,p.productType,c.name,sc.name ORDER BY u.id desc");
-            } else{
+            } else {
                 $customers = DB::select("SELECT $userColumns,alh.id as loanId,alh.bankId as loanFromBank,alh.loanAmount appliedLoanAmount,alh.tenure as appliedTenure,alh.rateOfInterest as givenROI,alh.approvedAmount,alh.approvedAmount,alh.status as loanStatus,alh.remark,p.productCode,p.productName,p.rateOfInterest as productROI,p.tenure as productTenure,p.amount as productAmount,p.amountTo as productAmountTo,p.numOfEmi as productEMI,p.productType,c.name as categoryName,sc.name as subCategoryName FROM users u LEFT JOIN  apply_loan_histories alh ON u.id=alh.userId LEFT JOIN  employment_histories eh ON u.id=eh.userId LEFT JOIN products p ON alh.productId=p.id LEFT JOIN categories c ON alh.loanCategory=c.id LEFT JOIN subcategories sc ON p.subCategoryId=sc.id LEFT JOIN loan_emi_details ed ON alh.id=ed.loanId WHERE u.userType='user'  $SUBQRY GROUP BY $userColumns,alh.id,alh.bankId,alh.loanAmount,alh.tenure,alh.rateOfInterest,alh.approvedAmount,alh.approvedAmount,alh.status,alh.remark,p.productCode,p.productName,p.rateOfInterest,p.tenure,p.amount,p.amountTo,p.numOfEmi,p.productType,c.name,sc.name ORDER BY u.id desc");
             }
             if ($pageNameStr == 'closed-loans' || $pageNameStr == 'all-loan-list') {
@@ -442,13 +449,13 @@ class ExportController extends Controller
         } elseif ($page == 'over-due-payments') {
             $fileName = 'OverDueReport-' . date('Y-m-d');
             $content = 'Sr. No., Customer Code, Customer Name, Customer Email, Customer Mobile, Loan Type, EMI Amount, EMI Date, EMI Due Date, Due Days' . "\r\n";
-            
+
             $today = date('Y-m-d');
             $previewCode = '';
             $fromDate = (strtotime($request->fromDate)) ? date('Y-m-d', strtotime($request->fromDate)) : null;
             $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : null;
             $SUBQRY = '';
-        
+
             if ($fromDate && $toDate) {
                 $SUBQRY .= " AND date(led.emiDueDate) BETWEEN date('$fromDate') AND date('$toDate') AND led.status='pending'";
             } elseif ($fromDate) {
@@ -458,25 +465,24 @@ class ExportController extends Controller
             } else {
                 $SUBQRY .= " AND date(led.emiDueDate) <= date('$today') AND  led.status='pending'";
             }
-            if($request->loanType != 0){
+            if ($request->loanType != 0) {
                 $SUBQRY .= " AND alh.loanCategory=$request->loanType";
             }
 
             $results = DB::select("SELECT u.id as userId,u.customerCode,u.name,u.email,u.mobile,categories.name AS cname,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,alh.loanAmount appliedLoanAmount,alh.tenure as appliedTenureId,alh.approvedTenure as approvedTenureId,alh.rateOfInterest as givenROI,alh.approvedAmount,alh.approvedAmount,alh.status as loanStatus,alh.disbursedDate,alh.remark,alh.loanCategory,led.emiAmount,led.emiDate,led.emiDueDate,led.status,led.transactionId,led.payment_mode,led.transactionDate,led.lateCharges FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId=u.id LEFT JOIN loan_emi_details led ON alh.id=led.loanId LEFT JOIN categories ON categories.id=alh.loanCategory WHERE u.id>0 $SUBQRY ORDER BY alh.id DESC");
             foreach ($results as $k => $row) {
-                $totaldays =0;
+                $totaldays = 0;
                 $now = strtotime($today);
                 $your_date = strtotime($row->emiDueDate);
                 $datediff = $now - $your_date;
                 $totaldays = abs(round($datediff / (60 * 60 * 24)));
-                
+
 
                 $transactionDate = (strtotime($row->transactionDate)) ? date('d-m-Y', strtotime($row->transactionDate)) : '';
                 $emiDate = (strtotime($row->emiDate)) ? date('d-m-Y', strtotime($row->emiDate)) : '';
                 $emiDueDate = (strtotime($row->emiDueDate)) ? date('d-m-Y', strtotime($row->emiDueDate)) : '';
 
-                $content .= ($k + 1) . ',' . $row->customerCode . ',' . $row->name . ',' .  $row->email . ','  .  $row->mobile. ','  .  $row->cname . ',' . $row->emiAmount . ',' . $emiDate . ',' . $emiDueDate. ',' . $totaldays . "\r\n";
-                
+                $content .= ($k + 1) . ',' . $row->customerCode . ',' . $row->name . ',' .  $row->email . ','  .  $row->mobile . ','  .  $row->cname . ',' . $row->emiAmount . ',' . $emiDate . ',' . $emiDueDate . ',' . $totaldays . "\r\n";
             }
         } elseif ($page == 'all-customers-list') {
             $fileName = 'Customers-' . date('Y-m-d');
@@ -528,54 +534,53 @@ class ExportController extends Controller
                 }
                 $previewCode = $row->customerCode;
             }
-        }elseif ($page == 'payment-report') {
+        } elseif ($page == 'payment-report') {
             $fileName = 'PaymentReport-' . date('Y-m-d');
             $payType = $request->payTypereportFilter ?? '0';
             $coladd = 'EMI ID,';
             $tname = 'Disbursed';
-            if($payType != '0'){
+            if ($payType != '0') {
                 $coladd = '';
                 $tname = 'Transaction';
             }
 
-            $content = 'Sr. No., Customer Code, Customer Name, Customer Email, Customer Mobile,Loan Type, Loan Id, '.$coladd.' Loan Amount,'.$tname.' Date,'.$tname.' Amount' . "\r\n";
-            if (!$request->fromDate || $request->fromDate=="") {
+            $content = 'Sr. No., Customer Code, Customer Name, Customer Email, Customer Mobile,Loan Type, Loan Id, ' . $coladd . ' Loan Amount,' . $tname . ' Date,' . $tname . ' Amount' . "\r\n";
+            if (!$request->fromDate || $request->fromDate == "") {
                 $request->merge(['fromDate' => '2019-01-01']);
             }
-            if (!$request->toDate || $request->toDate=="") {
+            if (!$request->toDate || $request->toDate == "") {
                 $request->merge(['toDate' => date('Y-m-d')]);
             }
             $payType = $request->payTypereportFilter ?? '0';
-    
-            if($payType == '0'){ // Reciable
+
+            if ($payType == '0') { // Reciable
                 $tname = 'Transaction';
                 $results1 = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,users.customerCode,users.name,users.mobile,users.email,categories.name AS cname,loan_emi_details.emiId,loan_emi_details.transactionDate AS t_date,loan_emi_details.netemiAmount AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory   WHERE loan_emi_details.status='success' AND loan_emi_details.transactionDate BETWEEN '$request->fromDate' AND '$request->toDate' ORDER BY loan_emi_details.transactionDate DESC");
                 $results2 = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,users.customerCode,users.name,users.mobile,users.email,categories.name AS cname,raw_materials_txn_details.amount AS t_amount,raw_materials_txn_details.interestAmountPayble,raw_materials_txn_details.transactionDate AS t_date FROM raw_materials_txn_details LEFT JOIN apply_loan_histories ON raw_materials_txn_details.loanId=apply_loan_histories.id LEFT JOIN users ON users.id=raw_materials_txn_details.userId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory   WHERE raw_materials_txn_details.status='success' AND raw_materials_txn_details.txnType='in' AND raw_materials_txn_details.transactionDate BETWEEN '$request->fromDate' AND '$request->toDate'");
                 // return $allloanEmiId;
-            }else{ // disbursed
+            } else { // disbursed
                 $tname = 'Disbursed';
                 $results1 = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,users.customerCode,users.name,users.mobile,users.email,categories.name AS cname,apply_loan_histories.disbursedDate AS t_date,apply_loan_histories.disbursementAmount AS t_amount FROM apply_loan_histories LEFT JOIN users ON users.id=apply_loan_histories.userId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory   WHERE apply_loan_histories.status IN ('closed','disbursed') AND apply_loan_histories.disbursedDate BETWEEN '$request->fromDate' AND '$request->toDate' AND apply_loan_histories.loanCategory!=3 ORDER BY apply_loan_histories.disbursedDate DESC");
                 $results2 = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,users.customerCode,users.name,users.mobile,users.email,categories.name AS cname,raw_materials_txn_details.amount AS t_amount,raw_materials_txn_details.transactionDate AS t_date FROM raw_materials_txn_details LEFT JOIN apply_loan_histories ON raw_materials_txn_details.loanId=apply_loan_histories.id LEFT JOIN users ON users.id=raw_materials_txn_details.userId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE raw_materials_txn_details.status='success' AND raw_materials_txn_details.txnType='out' AND transactionDate BETWEEN '$request->fromDate' AND '$request->toDate'");
                 // return $allloanF;
             }
             $results = array_merge($results1, $results2);
-            
+
             usort($results, function ($a, $b) {
                 return strtotime($b->t_date) <=> strtotime($a->t_date);
             });
             foreach ($results as $k => $row) {
                 $addcontent = '';
-                if($payType == '0'){
-                    $addcontent = ',' .($row->emiId??'-');
+                if ($payType == '0') {
+                    $addcontent = ',' . ($row->emiId ?? '-');
                 }
                 $tamount = $row->t_amount;
-                if(isset($row->interestAmountPayble) && $row->interestAmountPayble){
-                    $tamount = $row->t_amount+$row->interestAmountPayble;
+                if (isset($row->interestAmountPayble) && $row->interestAmountPayble) {
+                    $tamount = $row->t_amount + $row->interestAmountPayble;
                 }
-                $content .= ($k + 1) . ',' . $row->customerCode . ',' . trim($row->name) . ',' .  trim($row->email) . ','  .  trim($row->mobile) . ','  .  trim($row->cname) . ',LF0' . $row->id .$addcontent. ',' . $row->approvedAmount . ',' . date('Y-m-d',strtotime($row->t_date)) . ',' . $tamount . "\r\n";
-                
+                $content .= ($k + 1) . ',' . $row->customerCode . ',' . trim($row->name) . ',' .  trim($row->email) . ','  .  trim($row->mobile) . ','  .  trim($row->cname) . ',LF0' . $row->id . $addcontent . ',' . $row->approvedAmount . ',' . date('Y-m-d', strtotime($row->t_date)) . ',' . $tamount . "\r\n";
             }
-        }elseif ($page == 'next-month-emi') {
+        } elseif ($page == 'next-month-emi') {
             $fileName = 'NextMonthEMI-' . date('Y-m-d');
             // dd($request->all());
 
@@ -584,20 +589,89 @@ class ExportController extends Controller
             $nextMonth = date('m', strtotime('+1 month'));
             $thisYear = date('Y');
             $SUBQRY = '';
-            if($loanType && $loanType != '0'){
-                $SUBQRY = ' AND apply_loan_histories.loanCategory='.$loanType;
+            if ($loanType && $loanType != '0') {
+                $SUBQRY = ' AND apply_loan_histories.loanCategory=' . $loanType;
             }
-            
+
             $results = DB::select("SELECT apply_loan_histories.id,apply_loan_histories.loanCategory,apply_loan_histories.approvedAmount,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,loan_emi_details.emiId,loan_emi_details.emiDate AS t_date,loan_emi_details.netemiAmount AS t_amount FROM loan_emi_details LEFT JOIN users ON users.id=loan_emi_details.userId  LEFT JOIN apply_loan_histories ON apply_loan_histories.id=loan_emi_details.loanId LEFT JOIN categories ON categories.id=apply_loan_histories.loanCategory  WHERE loan_emi_details.status='pending' AND MONTH(loan_emi_details.emiDate)='$nextMonth' AND YEAR(loan_emi_details.emiDate)='$thisYear' $SUBQRY ORDER BY loan_emi_details.emiDate DESC");
             foreach ($results as $k => $row) {
 
                 $tamount = $row->t_amount;
-                if(isset($row->interestAmountPayble) && $row->interestAmountPayble){
-                    $tamount = $row->t_amount+$row->interestAmountPayble;
+                if (isset($row->interestAmountPayble) && $row->interestAmountPayble) {
+                    $tamount = $row->t_amount + $row->interestAmountPayble;
                 }
-                
-                $content .= ($k + 1) . ',' . $row->customerCode . ',' . trim($row->name) . ',' .  trim($row->email) . ','  .  trim($row->mobile) . ','  .  trim($row->cname) . ',LF0' . $row->id . ','. ($row->emiId??'-') . ',' . $row->approvedAmount . ',' . date('Y-m-d',strtotime($row->t_date)) . ',' . $tamount . "\r\n";
-                
+
+                $content .= ($k + 1) . ',' . $row->customerCode . ',' . trim($row->name) . ',' .  trim($row->email) . ','  .  trim($row->mobile) . ','  .  trim($row->cname) . ',LF0' . $row->id . ',' . ($row->emiId ?? '-') . ',' . $row->approvedAmount . ',' . date('Y-m-d', strtotime($row->t_date)) . ',' . $tamount . "\r\n";
+            }
+        } elseif ($page == 'new-customer-report') {
+            $fileName = 'NewCustomerReport-' . date('Y-m-d');
+
+            $content = 'Sr. No., Customer Code, Name, Email, Mobile,Loan Type, Date, KYC Status, Business Status,Admin Approve,Status' . "\r\n";
+
+            $fromDate = (strtotime($request->fromDate)) ? date('Y-m-d', strtotime($request->fromDate)) : '';
+            $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : '';
+    
+            $SUBQRY = '';
+            
+            if ($request->kycStatus && $request->kycStatus != '0') {
+                $SUBQRY .= " AND u.kycStatus='$request->kycStatus'";
+            }
+            if ($request->businessStatus && $request->businessStatus != '0') {
+                $SUBQRY .= " AND eh.status='$request->businessStatus'";
+            }
+            
+            if ($fromDate != "" && $toDate != "") {
+                $SUBQRY .= " AND date(u.created_at)>='$fromDate' AND date(u.created_at)<='$toDate'";
+            }else{
+                $fromDate = Carbon::now()->subDays(7)->startOfDay();
+                $toDate = Carbon::now()->endOfDay();
+                $SUBQRY .= " AND date(u.created_at)>='$fromDate' AND date(u.created_at)<='$toDate'";
+            }
+    
+            $results = DB::select("SELECT DISTINCT u.*,c.name as loanCategoryD,alh.id as loanId,alh.isAdminApproved,alh.reject_reason,eh.id as employmentHistoryId,alh.status as loanStatus,eh.status as employmentStatus FROM users u LEFT JOIN  apply_loan_histories alh ON u.id=alh.userId LEFT JOIN employment_histories eh ON u.id=eh.userId LEFT JOIN categories c ON alh.loanCategory=c.id WHERE u.userType='user' $SUBQRY ORDER BY u.id desc");
+
+            // dd($results);
+
+            foreach ($results as $k => $row) {
+
+                if($row->isAdminApproved == 'approved'){
+                    $isadminApprove = 'Approved';
+                }else if($row->isAdminApproved == 'rejected'){
+                    $isadminApprove = 'Rejected';
+                }else if($row->isAdminApproved == 'need update'){
+                    $isadminApprove = 'Need Update';
+                }else{
+                    $isadminApprove = 'Pending';
+                }
+                if ($row->kycStatus == 'approved') {
+                    $kycStatus = 'Approved';
+                } else if ($row->kycStatus == 'rejected') {
+                    $kycStatus = 'Rejected';
+                } else {
+                    $kycStatus = 'Pending';
+                }
+            
+            
+                if ($row->employmentStatus == 'approved') {
+                    $employmentStatus = 'Approved';
+                } else if ($row->employmentStatus == 'rejected') {
+                    $employmentStatus = 'Rejected';
+                } else {
+                    $employmentStatus = 'Pending';
+                }
+
+                if ($row->status == 1) {
+                    $uStatus = 'Active';
+                } else if ($row->status == 2) {
+                    $uStatus = 'Rejected';
+                } else {
+                    $uStatus = 'Deactive';
+                }
+
+                $createdDate = (strtotime($row->created_at)) ? date('d/m/Y', strtotime($row->created_at)) : '';
+
+
+                $content .= ($k + 1) . ',' . $row->customerCode . ',' . trim($row->name) . ',' .  trim($row->email) . ','  .  trim($row->mobile) . ','  .  trim($row->loanCategoryD) . ',' . $createdDate . ',' . $kycStatus . ',' . $employmentStatus . ',' . $isadminApprove . ',' . $uStatus . "\r\n";
             }
         } else if ($page == 'raw-material-financing-loans') {
             $fileName = 'RawMaterialFinancingLoans-' . date('Y-m-d');
@@ -680,17 +754,16 @@ class ExportController extends Controller
                     $content .= ',' . $applyDate . "\r\n";
                 }
             }
-        }else if($page == 'emi-card'){
+        } else if ($page == 'emi-card') {
 
             $fileName = 'EmiData-' . date('Y-m-d');
-            $loanId=$request->loanId;
+            $loanId = $request->loanId;
             $content = 'EMI ID., Customer Code, Customer Name, Customer Email, Customer Mobile,Company Name, Withdraw Date, Withdraw Amount, Tenure, Due Amount,Due Days,Over Due Date' . "\r\n";
-            $loanDetailsArr=DB::select("SELECT alh.*,c.name as categoryName,p.productName,t1.name as appliedTenureD,t2.name as approvedTenureD FROM apply_loan_histories alh LEFT JOIN categories c ON alh.loanCategory=c.id LEFT JOIN products p ON alh.productId=p.id LEFT JOIN tenures t1 ON alh.tenure=t1.id LEFT JOIN tenures t2 ON alh.approvedTenure=t2.id where alh.id='$loanId' ORDER BY alh.id DESC");
-            if(count($loanDetailsArr))
-            {
-                $loanDetails=$loanDetailsArr[0];
+            $loanDetailsArr = DB::select("SELECT alh.*,c.name as categoryName,p.productName,t1.name as appliedTenureD,t2.name as approvedTenureD FROM apply_loan_histories alh LEFT JOIN categories c ON alh.loanCategory=c.id LEFT JOIN products p ON alh.productId=p.id LEFT JOIN tenures t1 ON alh.tenure=t1.id LEFT JOIN tenures t2 ON alh.approvedTenure=t2.id where alh.id='$loanId' ORDER BY alh.id DESC");
+            if (count($loanDetailsArr)) {
+                $loanDetails = $loanDetailsArr[0];
             }
-            $emiDetails=LoanEmiDetail::where(['loanId'=>$loanId])->orderBy('emiSr','asc')->get();
+            $emiDetails = LoanEmiDetail::where(['loanId' => $loanId])->orderBy('emiSr', 'asc')->get();
             // $loanId = $request->loanId;
             // $loanDetailsArr=DB::select("SELECT alh.*,c.name as categoryName,p.productName,t1.name as appliedTenureD,t2.name as approvedTenureD FROM apply_loan_histories alh LEFT JOIN categories c ON alh.loanCategory=c.id LEFT JOIN products p ON alh.productId=p.id LEFT JOIN tenures t1 ON alh.tenure=t1.id LEFT JOIN tenures t2 ON alh.approvedTenure=t2.id where alh.id='$loanId' ORDER BY alh.id DESC");
             // if(count($loanDetailsArr))
@@ -700,7 +773,7 @@ class ExportController extends Controller
             // $emiDetails=LoanEmiDetail::where(['loanId'=>$loanId])->orderBy('emiSr','asc')->get();
             // if($loanDetails->roiType =='quaterly_interest'){ $mtxt ='QUARTERLY';}else{$mtxt ='MONTHLY';}
             //          if($loanDetails->loanCategory==8){
-                        
+
             //              $htmlStr .= '<th scope="col"> '.$mtxt.' INTEREST</th>';
             //          }else{
             //              $htmlStr .= '<th scope="col">EMI Amount</th>';
@@ -708,56 +781,55 @@ class ExportController extends Controller
             //                  $htmlStr .= '<th scope="col">NET EMI Amount</th>';
             //              }
             //          }
-        }else if($page == 'accrud-working'){
+        } else if ($page == 'accrud-working') {
 
             $fileName = 'AccrudWorking-' . date('Y-m-d');
             $content = 'Sr. No.,Customer Code,Customer Name,Loan Id,Loan Type,Start Date,Closing Date,ROI %,No Of Days,O/S AMOUNT (Sum),ACCRUD INTEREST (Sum)' . "\r\n";
 
 
-            if($request->quarterlyFilter){
-                $rdata = explode('-',$request->quarterlyFilter) ;
-                $startDate = date('Y-m-1',strtotime($rdata[0]));
+            if ($request->quarterlyFilter) {
+                $rdata = explode('-', $request->quarterlyFilter);
+                $startDate = date('Y-m-1', strtotime($rdata[0]));
                 $endDate = date('Y-m-t', strtotime($rdata[1]));
                 $mon1tartDate = date('Y-m-1', strtotime('-1 month', strtotime($rdata[0])));
             }
-    
+
             $loanType = $request->loanTypereportFilter;
-           
-    
+
+
             $SUBQRY = '';
-        if ($loanType && $loanType == '3') {
-            $SUBQRY .= " AND date(rawl.openingDate) BETWEEN date('$startDate') AND date('$endDate')";
-            $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) BETWEEN date('$startDate') AND date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
-        } elseif ($loanType && $loanType == '8') {
-            $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN COALESCE( (SELECT MAX(transactionDate) FROM loan_emi_details WHERE loanId = alh.id AND status = 'success' AND emiAmount != 0 AND transactionDate IS NOT NULL AND DATE(transactionDate) <= '$endDate'), alh.disbursedDate, '$endDate' ) WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE(alh.disbursedDate, '$endDate') ELSE led.emiDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN led.balance - COALESCE( (SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0 ) ELSE alh.loanAmount - COALESCE( (SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0 ) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN ( SELECT * FROM loan_emi_details WHERE id IN ( SELECT MAX(id) FROM loan_emi_details WHERE status = 'success' AND transactionDate IS NOT NULL GROUP BY loanId ) ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = 8 AND ( DATE(alh.disbursedDate) <= '$endDate' OR ( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND ( (led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL) OR (alh.loanAmount - COALESCE((SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate'), 0) > 0) ) ) ) HAVING netemiAmount != 0 AND emiId IS NOT NULL AND (t_date BETWEEN '$mon1tartDate' AND '$endDate') ORDER BY alh.id DESC");
-        }elseif ($loanType) {
-            $SUBQRY = ' AND alh.loanCategory=' . $loanType;
-            $results = DB::select("SELECT alh.id,alh.loanCategory,alh.approvedAmount,alh.rateOfInterest,led.emiId,led.emiDate AS t_date,categories.name AS cname,users.customerCode,users.name,users.mobile,users.email,alh.loanAmount - (SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= DATE('$endDate')) AS netemiAmount FROM (SELECT MAX(id) AS max_id FROM loan_emi_details WHERE DATE(transactionDate) <= DATE('$endDate') AND DATE(emiDate) <= DATE('$endDate') GROUP BY loanId) AS max_ids JOIN loan_emi_details AS led ON led.id = max_ids.max_id LEFT JOIN apply_loan_histories AS alh ON alh.id = led.loanId LEFT JOIN users ON users.id = led.userId LEFT JOIN categories ON categories.id = alh.loanCategory WHERE 1 $SUBQRY GROUP BY led.loanId HAVING netemiAmount > 0 ORDER BY led.loanId DESC");
-        } else {
-            $SUBQRY .= " AND date(rawl.openingDate) BETWEEN date('$startDate') AND date('$endDate')";
-            $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) BETWEEN date('$startDate') AND date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
-        }
-
-            
-
-            if (count($results)) {
-                foreach ($results as $k=>$row) {
-                    $sdate = date('Y-m-d', strtotime($row->t_date));
-
-                $datetime1 = new DateTime($sdate);
-                $datetime2 = new DateTime($endDate);
-                $interval = $datetime1->diff($datetime2);
-                $totalDays = $interval->days;
-
-                $roiwidth = ($row->rateOfInterest / 100) * $row->netemiAmount;
-
-                $interstCal = round(($roiwidth/365)*$totalDays,2);
-    
-                    $content .= ($k + 1) . ',' . $row->customerCode . ',' . $row->name . ',' .  'LF0' . $row->id . ','  .  $row->cname. ','  .  $sdate. ','  .  $endDate . ',' . $row->rateOfInterest . ',' . $totalDays . ',' . $row->netemiAmount. ',' . $interstCal . "\r\n";
-                    
-                }
+            if ($loanType && $loanType == '3') {
+                $SUBQRY .= " AND date(rawl.openingDate) <= date('$endDate')";
+                $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) <= date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
+            } elseif ($loanType && $loanType == '8') {
+                $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN CASE WHEN DATE(led.transactionDate) BETWEEN '$startDate' AND '$endDate' THEN led.emiDate ELSE led.emiDate END WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE(alh.disbursedDate, '$endDate') ELSE led.emiDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN (SELECT COUNT(*) FROM loan_emi_details WHERE loanId = alh.id AND status = 'pending' AND DATE(emiDate) <= '$endDate') > 0 THEN (SELECT balance - COALESCE(SUM(principle), 0) FROM loan_emi_details WHERE loanId = alh.id AND status = 'pending' AND DATE(emiDate) <= '$endDate') ELSE (SELECT balance FROM loan_emi_details WHERE DATE(transactionDate) <= '$endDate' AND loanId=alh.id ORDER BY id DESC LIMIT 1) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN ( SELECT led.* FROM loan_emi_details led INNER JOIN ( SELECT loanId, MAX(id) AS max_id FROM loan_emi_details WHERE emiDate BETWEEN '$startDate' AND '$endDate' GROUP BY loanId ) AS mled ON led.id = mled.max_id ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = 8 AND ( DATE(alh.disbursedDate) <= '$endDate' OR ( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND ( ( led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL ) OR ( alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) > 0 ) ) ) ) HAVING netemiAmount > 0 AND emiId IS NOT NULL AND ( t_date BETWEEN '$mon1tartDate' AND '$endDate' ) ORDER BY alh.id DESC");
+            } elseif ($loanType) {
+                $SUBQRY = ' AND alh.loanCategory=' . $loanType;
+                $results = DB::select("SELECT alh.id, alh.loanCategory, alh.approvedAmount, alh.rateOfInterest, led.emiId, CASE WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN COALESCE( ( SELECT MAX(emiDate) FROM loan_emi_details WHERE loanId = alh.id AND status = 'success' AND emiAmount != 0 AND transactionDate IS NOT NULL AND DATE(emiDate) <= '$endDate'), DATE_FORMAT(DATE_ADD(alh.disbursedDate, INTERVAL 0 MONTH), '%Y-%m-05'), '$endDate' ) WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN COALESCE( DATE_FORMAT(DATE_ADD(alh.disbursedDate, INTERVAL 1 MONTH), '%Y-%m-05'), '$endDate' ) ELSE led.emiDate END AS t_date, c.name AS cname, u.customerCode, u.name, u.mobile, u.email, CASE WHEN led.status = 'success' AND DATE(led.emiDate) <= '$endDate' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL THEN led.balance - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) ELSE alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) END AS netemiAmount FROM apply_loan_histories AS alh LEFT JOIN ( SELECT * FROM loan_emi_details WHERE id IN ( SELECT MAX(id) FROM loan_emi_details WHERE status = 'success' AND transactionDate IS NOT NULL GROUP BY loanId ) ) AS led ON led.loanId = alh.id LEFT JOIN users AS u ON u.id = alh.userId LEFT JOIN categories AS c ON c.id = alh.loanCategory WHERE alh.loanCategory = $loanType AND ( DATE(alh.disbursedDate) <= '$endDate' OR ( led.id IS NOT NULL AND DATE(led.transactionDate) <= '$endDate' AND DATE(led.emiDate) <= '$endDate' AND ( ( led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL ) OR ( alh.loanAmount - COALESCE( ( SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '$endDate' ), 0 ) > 0 ) ) ) ) HAVING netemiAmount > 0 AND emiId IS NOT NULL  ORDER BY alh.id DESC");
+            } else {
+                $SUBQRY .= " AND date(rawl.openingDate) BETWEEN date('$startDate') AND date('$endDate')";
+                $results = DB::select("SELECT alh.id,alh.rateOfInterest,rawl.interestAmount,u.id as userId,u.customerCode,u.name,u.email,u.mobile,alh.id as loanId,alh.productId,eh.employerName,rawl.openingDate AS t_date,rawl.amount ,rawl.interestAmountPayble,rawl.interestStartDate,(SELECT SUM(CASE WHEN txnType = 'out' THEN amount ELSE 0 END) - SUM(CASE WHEN txnType = 'in' THEN amount ELSE 0 END) FROM raw_materials_txn_details WHERE loanId = alh.id AND openingDate = rawl.openingDate AND date(transactionDate) BETWEEN date('$startDate') AND date('$endDate')) AS netemiAmount,categories.name AS cname,rawl.status,tenures.name AS tname FROM apply_loan_histories alh LEFT JOIN users u ON alh.userId = u.id LEFT JOIN raw_materials_txn_details rawl ON alh.id = rawl.loanId LEFT JOIN tenures ON rawl.approvedTenure = tenures.id LEFT JOIN employment_histories AS eh ON eh.userId = u.id LEFT JOIN categories ON categories.id = alh.loanCategory WHERE u.id > 0 AND rawl.status = 'success' $SUBQRY AND rawl.txnType = 'out' GROUP BY u.id, alh.id, rawl.openingDate HAVING netemiAmount <> 0 ORDER BY u.id, rawl.openingDate DESC");
             }
 
+
+
+
+            if (count($results)) {
+                foreach ($results as $k => $row) {
+                    $sdate = date('Y-m-d', strtotime($row->t_date));
+
+                    $datetime1 = new DateTime($sdate);
+                    $datetime2 = new DateTime($endDate);
+                    $interval = $datetime1->diff($datetime2);
+                    $totalDays = $interval->days;
+
+                    $roiwidth = ($row->rateOfInterest / 100) * $row->netemiAmount;
+
+                    $interstCal = round(($roiwidth / 365) * $totalDays, 2);
+
+                    $content .= ($k + 1) . ',' . $row->customerCode . ',' . $row->name . ',' .  'LF0' . $row->id . ','  .  $row->cname . ','  .  $sdate . ','  .  $endDate . ',' . $row->rateOfInterest . ',' . $totalDays . ',' . $row->netemiAmount . ',' . $interstCal . "\r\n";
+                }
+            }
         } else {
             return redirect()->back();
         }

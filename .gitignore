@@ -2,3 +2,7 @@ vendor/
 public/
 .DS_Store
 .env
+easebuzz-lib/
+db/
+database/
+storage/

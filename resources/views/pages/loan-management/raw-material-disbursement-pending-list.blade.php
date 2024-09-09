@@ -137,6 +137,13 @@
                             <a href="" style="color:blue;" target="_blank" id="drawDownFormFileV">View Draw Down Form</a>
                         </div>
                     </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <strong>UTR Name</strong> <span id="utrNameV"></span> <br>
+                            <a href="" style="color:blue;" target="_blank" id="utrFormFileV">View UTR File</a>
+                        </div>
+                    </div>
+                    
                 </form>
             </div>
             <div class="modal-footer">
@@ -377,11 +384,21 @@
         var invoiceNumber=$('#rawFile'+loanIdDisburseId).attr('data-invoiceNumber');
         var invoiceFile=$('#rawFile'+loanIdDisburseId).attr('data-invoiceFile');
         var drawDownFormFile=$('#rawFile'+loanIdDisburseId).attr('data-drawDownFormFile');
+
+        var urtName=$('#rawFile'+loanIdDisburseId).attr('data-urtName');
+        var urtFile=$('#rawFile'+loanIdDisburseId).attr('data-urtFile');
         
         $('#invoiceNumberV').html(invoiceNumber);
         $('#invoiceFileV').attr('href','{{asset('/')}}public/'+invoiceFile);
         $('#drawDownFormFileV').attr('href','{{asset('/')}}public/'+drawDownFormFile);
         $('#rawDocsModal').modal('show');
+
+        $('#utrNameV').html(urtName);
+        if(urtFile == undefined){
+            $('#utrFormFileV').attr('href',`javascript:void(0);`);
+        }else{
+            $('#utrFormFileV').attr('href',`{{asset('/')}}public/${urtFile}`);
+        }
     }
 </script>
 @endsection

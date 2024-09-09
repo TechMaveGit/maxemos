@@ -724,6 +724,7 @@ public function careerForm(Request $request){
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Principle Deposit</th>
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Tenure </th>
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
+                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
                   <?php  }else if($filterType=='credit'){ ?>
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Amount</th>
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Transaction Id</th>
@@ -732,6 +733,7 @@ public function careerForm(Request $request){
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Tenure </th>
                             
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
+                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
                   <?php  }else if($filterType=='debit'){ ?>
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Date</th>
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Amount</th>
@@ -753,6 +755,7 @@ public function careerForm(Request $request){
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Due Date</th>
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Due Amount</th>
                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
+                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
                   <?php  } ?>
                   <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Status </th>
              <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Created Date</th>
@@ -831,7 +834,13 @@ public function careerForm(Request $request){
                                                     <td><?= $lrow->tenureName ?></td>
                                                     <?php $invNumber = ($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
                                                     if ($invNumber) { ?>
-                                                        <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
+                                                        <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
+                                                    <?php } else { ?>
+                                                        <td></td>
+                                                    <?php  } ?>
+                                                    <?php $utrName = ($lrow->utr_name) ? $lrow->utr_name : '';
+                                                    if ($utrName) { ?>
+                                                        <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $utrName ?></a></td>
                                                     <?php } else { ?>
                                                         <td></td>
                                                     <?php  } ?>
@@ -846,8 +855,14 @@ public function careerForm(Request $request){
                                                 <td><?= $lrow->tenureName ?></td>
                                                 <?php $invNumber = ($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
                                                 if ($invNumber) { ?>
-                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
-                                                <?php   } else { ?>
+                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
+                                                <?php } else { ?>
+                                                    <td></td>
+                                                <?php  } ?>
+                                                <?php $utrName = ($lrow->utr_name) ? $lrow->utr_name : '';
+                                                if ($utrName) { ?>
+                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $utrName ?></a></td>
+                                                <?php } else { ?>
                                                     <td></td>
                                                 <?php  } ?>
                                                 <td><?= $debitStatus ?></td>
@@ -874,9 +889,15 @@ public function careerForm(Request $request){
                                                 <td><?= $tenureDueDate ?></td>
                                                 <td><?= number_format($lrow->openingBalanceLatest,2) ?></td>
                                                 <?php $invNumber = ($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
-                                                 if ($invNumber) { ?>
-                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
-                                                <?php   } else { ?>
+                                                if ($invNumber) { ?>
+                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
+                                                <?php } else { ?>
+                                                    <td></td>
+                                                <?php  } ?>
+                                                <?php $utrName = ($lrow->utr_name) ? $lrow->utr_name : '';
+                                                if ($utrName) { ?>
+                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $utrName ?></a></td>
+                                                <?php } else { ?>
                                                     <td></td>
                                                 <?php  } ?>
                                                 <td><?= $debitStatus ?></td>
@@ -1976,6 +1997,7 @@ public function careerForm(Request $request){
         $userBankDtl = UserBankDetail::where('userId', $userId)->orderBy('id', 'desc')->first();
         $userDocDtl = UserDoc::where('userId', $userId)->orderBy('id', 'desc')->first();
         $otherKycDocs = LoanKycOtherPendetail::where('userId', $userId)->orderBy('id', 'ASC')->get();
+        $otherDocs = OtherKycDoc::where('userId', $userId)->orderBy('id', 'ASC')->get();
 
         $coApplicantDtl = CoApplicantDetail::where('userId', $userId)->orderBy('id', 'asc')->first();
 
@@ -2007,7 +2029,7 @@ public function careerForm(Request $request){
         $indiaStates=$this->indianStates;
         
 
-        return view('web.apply-now', compact('category', 'userloggedData', 'userBankDtl', 'userDocDtl', 'otherKycDocs', 'coApplicantDtl', 'empHistory', 'loanData','indiaStates'));
+        return view('web.apply-now', compact('category', 'userloggedData', 'userBankDtl', 'userDocDtl', 'otherKycDocs','otherDocs', 'coApplicantDtl', 'empHistory', 'loanData','indiaStates'));
     }
 
     public function initiateApplyLoanWeb(Request $request)
@@ -2324,7 +2346,7 @@ public function careerForm(Request $request){
          AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
          AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
                 }else{
-        AppServiceProvider::sendMail("raju@techmavesoftware.com","Raju", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
+        // AppServiceProvider::sendMail("raju@techmavesoftware.com","Raju", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
         AppServiceProvider::sendMail("basant@techmavesoftware.com","Basant", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
                 }
         if ($save) {
@@ -3767,7 +3789,7 @@ public function careerForm(Request $request){
                 AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
             }else{
                 AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant Singh", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
-                AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
+                // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
             }
 
             echo json_encode(['status' => 'success', 'message' => 'Disbursement request has been sent successfully.']);

@@ -25,6 +25,7 @@ class ApplyLoanHistory extends Model
         'approvedTenure',
         'monthlyEMI',
         'totalInterest',
+        'paidInterest',
         'emisDetailsStr',
         'principleCharges',
         'principleChargesDetails',

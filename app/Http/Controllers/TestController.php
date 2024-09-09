@@ -11,6 +11,72 @@ use GuzzleHttp\Exception\RequestException;
 class TestController extends Controller
 {
 
+public function index(){
+
+$results = DB::select("SELECT 
+    alh.id,
+    alh.loanCategory,
+    alh.approvedAmount,
+    alh.rateOfInterest,
+    led.emiId,
+    CASE
+        WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL
+            THEN (
+                SELECT MAX(transactionDate)
+                FROM loan_emi_details
+                WHERE loanId = alh.id AND status = 'success' AND emiAmount != 0 AND transactionDate IS NOT NULL AND DATE(transactionDate) <= '2024-03-31'
+            )
+        WHEN led.emiAmount = 0 AND led.emiSr = 0 THEN alh.disbursedDate
+        ELSE led.emiDate
+    END AS t_date,
+    c.name AS cname,
+    u.customerCode,
+    u.name,
+    u.mobile,
+    u.email,
+    CASE
+        WHEN led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL
+            THEN led.balance - COALESCE((SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '2024-03-31'), 0)
+        ELSE alh.loanAmount - COALESCE((SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '2024-03-31'), 0)
+    END AS netemiAmount
+FROM 
+    apply_loan_histories AS alh
+    LEFT JOIN (
+        SELECT *
+        FROM loan_emi_details
+        WHERE id IN (
+            SELECT MAX(id)
+            FROM loan_emi_details
+            WHERE status = 'success' AND transactionDate IS NOT NULL
+            GROUP BY loanId
+        )
+    ) AS led ON led.loanId = alh.id
+    LEFT JOIN users AS u ON u.id = alh.userId
+    LEFT JOIN categories AS c ON c.id = alh.loanCategory
+WHERE 
+    alh.loanCategory = 8
+    AND (
+        DATE(alh.disbursedDate) <= '2024-03-31'
+        OR (
+            led.id IS NOT NULL
+            AND DATE(led.transactionDate) <= '2024-03-31'
+            AND DATE(led.emiDate) <= '2024-03-31'
+            AND (
+                (led.status = 'success' AND led.emiAmount != 0 AND led.transactionDate IS NOT NULL)
+                OR (
+                    alh.loanAmount - COALESCE((SELECT SUM(principle) FROM loan_emi_details WHERE loanId = alh.id AND DATE(emiDate) <= '2024-03-31'), 0) > 0
+                )
+            )
+        )
+    )
+HAVING
+    netemiAmount != 0
+ORDER BY 
+    alh.id DESC;");
+dd($results);
+        return $customerRes[0]->customerCode.'----'.$customerCode;
+
+}
 
     public function eashInhert(){
         $client = new Client();

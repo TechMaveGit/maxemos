@@ -12,6 +12,7 @@ use App\Models\Category;
 use App\Models\CoApplicantDetail;
 use App\Models\EmploymentHistory;
 use App\Models\LoanKycOtherPendetail;
+use App\Models\OtherKycDoc;
 use App\Models\TempApplyLoan;
 use App\Models\User;
 use App\Models\UserBankDetail;
@@ -183,7 +184,7 @@ class ApplyController extends Controller
                 AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
             } else {
 
-                AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
+                // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
                 AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
             }
         }
@@ -201,6 +202,7 @@ class ApplyController extends Controller
         $user_id = auth()->user()->id;
         $saveUp = [];
         $saveUpDocs = [];
+       
         if ($request->hasFile('panCardFront')) {
             
             $pancard = $lobObj->ocr_adhaar_verification(3);
@@ -527,6 +529,30 @@ class ApplyController extends Controller
                 $userDataSave->save();
             }
         }
+
+        if(!empty($request->otherDocumentTitle)){
+            $otherDocumentTitle=$request->otherDocumentTitle;
+            $docsUrlArr=AppServiceProvider::uploadImageCustomMulti('otherDocument','user-docs');
+
+            if(count($docsUrlArr))
+            {
+                $newSave=[];
+                $osr=0;
+                $currentDate=date('Y-m-d H:i:s');
+                foreach($otherDocumentTitle as $otherRow)
+                {   
+                    //print_r($docsUrlArr[$osr]);exit;
+                    if($otherRow)
+                    {
+                        $newSave[]=['userId'=>$user_id,'title'=>$otherRow,'docsUrl'=>(isset($docsUrlArr[$osr])) ? $docsUrlArr[$osr] : '','created_at'=>$currentDate,'updated_at'=>$currentDate];
+                    }
+                    
+                    $osr++;
+                }
+                //print_r($newSave);exit;
+                OtherKycDoc::insert($newSave);
+            }
+        }
         return redirect()->back()->with('data_message', 'KYC Documents Uploaded!');
     }
 
@@ -629,7 +655,7 @@ class ApplyController extends Controller
             AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
         } else {
 
-            AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
+            // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
             AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
         }
 

@@ -595,11 +595,11 @@ class GloadController extends Controller
         $headers = array(
             "Content-Type: application/json",
             "Cookie: TS0185b412=0191ea91a4967760b41c3e578bc6002c6206f8c24631e7e4ec03f6b3ba0a95d1a3d345440b166a58bb20d4e0c8e4dcfc3f11bcab30",
-            "CustomerId:21",
-            "UserId:UAT_MAXEMO",
-            "Password:V2*Pdhbr",
-            "MemberNumber:027BB02400",
-            "SecurityCode:N42",
+            "CustomerId:9198",
+            "UserId:STS_MAXPCS",
+            "Password:W3#QeicsB",
+            "MemberNumber:007FP13413",
+            "SecurityCode:2AI",
             "CustRefField:123456",
             "ProductCode:PCS"
         );
@@ -632,6 +632,7 @@ class GloadController extends Controller
             DB::table('apihits')->where('id', $apih)->update(['status' => 1]);
             curl_close($ch);
             $responseData = json_decode($response, true);
+            //dd($response);
             return $responseData;
         }
     }

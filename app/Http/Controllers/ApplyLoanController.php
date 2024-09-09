@@ -849,7 +849,7 @@ class ApplyLoanController extends Controller
                         AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com","Vipul Mittal","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
                         AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com","Vivek Mittal","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
                      }else{
-                         AppServiceProvider::sendMail("raju@techmavesoftware.com","Raju","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
+                        // AppServiceProvider::sendMail("raju@techmavesoftware.com","Raju","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
                          AppServiceProvider::sendMail("basant@techmavesoftware.com","Basant","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
                      }
                 }
@@ -969,7 +969,7 @@ class ApplyLoanController extends Controller
     }
 
 
-    public function sendLoanForCustomerApprovalExceptRawMaterial($userId,$approvedROI,$approvedAmount,$loanId,$approveTenure,$plateformFee,$insurance,$netDisbursementAmount,$roiType,$tds)
+    public function sendLoanForCustomerApprovalExceptRawMaterial($userId,$approvedROI,$approvedAmount,$loanId,$approveTenure,$plateformFee,$insurance,$netDisbursementAmount,$roiType,$tds,$isPaidInterest)
     {
         
         $loanDetails=DB::select("SELECT alh.*,c.name as categoryName,p.productName,t1.name as appliedTenureD,t2.name as approvedTenureD FROM apply_loan_histories alh LEFT JOIN categories c ON alh.loanCategory=c.id LEFT JOIN products p ON alh.productId=p.id LEFT JOIN tenures t1 ON alh.tenure=t1.id LEFT JOIN tenures t2 ON alh.approvedTenure=t2.id where alh.userId='$userId' AND alh.id='$loanId' ORDER BY alh.id DESC");
@@ -978,6 +978,8 @@ class ApplyLoanController extends Controller
         }
         $loanDetails=$loanDetails[0];
         
+       
+
         $acceptURL=route('acceptLoanByCustomer',[1,md5($loanId)]);
         $rejectURL=route('acceptLoanByCustomer',[2,md5($loanId)]);
         $userDtl=User::getUserDetailsById($userId);
@@ -1014,7 +1016,7 @@ class ApplyLoanController extends Controller
                 if($roiType=='reducing_roi')
                 {
                     $monthlyEmiLabel='Monthly EMI';
-                    $emisDetailsArr=$objComm->getEmisPMT($numOfEmis,$approvedROI,$approvedAmount,$payment_date,$tds);
+                    $emisDetailsArr=$objComm->getEmisPMT($numOfEmis,$approvedROI,$approvedAmount,$payment_date,$tds,$isPaidInterest);
                 }else if($roiType=='quaterly_interest')
                 {
                     $monthlyEmiLabel='Quarterly EMI';
@@ -1022,7 +1024,7 @@ class ApplyLoanController extends Controller
                 }else if($roiType=='fixed_interest_roi')
                 {
                     $monthlyEmiLabel='Monthly EMI';
-                    $emisDetailsArr=$objComm->getFixedInterestEmis($numOfEmis,$approvedROI,$approvedAmount,$payment_date,$tds);
+                    $emisDetailsArr=$objComm->getFixedInterestEmis($numOfEmis,$approvedROI,$approvedAmount,$payment_date,$tds,$isPaidInterest);
                 }
             }
             
@@ -1035,9 +1037,13 @@ class ApplyLoanController extends Controller
             
         }
 
+        $paidInterest = 0;
+        if($isPaidInterest){
+            $paidInterest=$totalInterest;
+        }
         $emisDetailsStr=(!empty($emisDetailsArr)) ? json_encode($emisDetailsArr) : '';
 
-        ApplyLoanHistory::where('id',$loanId)->update(['monthlyEMI'=>$monthlyEMI,'totalInterest'=>$totalInterest,'emisDetailsStr'=>$emisDetailsStr]);
+        ApplyLoanHistory::where('id',$loanId)->update(['monthlyEMI'=>$monthlyEMI,'paidInterest'=>$paidInterest,'totalInterest'=>$totalInterest,'emisDetailsStr'=>$emisDetailsStr]);
 
 
         
@@ -1261,6 +1267,7 @@ class ApplyLoanController extends Controller
         $insurance=$request->insurance;
         $roiType=$request->roiType;
         $tds = isset($request->tds) ? $request->tds  : 0;
+        $isPaidInterest = $request->paidFullInterest ?? 0;
 
         $validFromDate=(strtotime($request->validFromDate)) ? date('Y-m-d',strtotime($request->validFromDate)) : '';
         $validToDate=(strtotime($request->validToDate)) ? date('Y-m-d',strtotime($request->validToDate)) : '';
@@ -1369,7 +1376,7 @@ class ApplyLoanController extends Controller
         
         if($loanId && $loanCategory!=3)
         {
-            $this->sendLoanForCustomerApprovalExceptRawMaterial($userId,$approvedRoi,$approvedAmount,$loanId,$approveTenure,$plateformFee,$insurance,$netDisbursementAmount,$roiType,$tds);
+            $this->sendLoanForCustomerApprovalExceptRawMaterial($userId,$approvedRoi,$approvedAmount,$loanId,$approveTenure,$plateformFee,$insurance,$netDisbursementAmount,$roiType,$tds,$isPaidInterest);
         }
         else{
             if($loanId){
@@ -1466,12 +1473,17 @@ class ApplyLoanController extends Controller
                         </div>
                      </div>';
 
-                $toMail=$userDtl->email;
-                $toUser=$userDtl->name;
-                $subject='Need Approval For Loan '.$verifyWith;
-                if($toMail){
-                    AppServiceProvider::sendMail($toMail,$toUser,$subject,$htmlSt);
-                }
+                    
+                        $toMail=$userDtl->email;
+                        $toUser=$userDtl->name;
+                        $subject='Need Approval For Loan '.$verifyWith;
+                        if (config('app.env') == "production") {
+                            if($toMail){
+                                AppServiceProvider::sendMail($toMail,$toUser,$subject,$htmlSt);
+                            }
+                        }else{
+                            AppServiceProvider::sendMail("basant@techmavesoftware.com",$toUser,$subject,$htmlSt);
+                        }
 
                 echo json_encode(['status'=>'success','message'=>'Loan has been sent for customer consent.']); exit;
             }else{
@@ -1603,15 +1615,26 @@ class ApplyLoanController extends Controller
             $htmlStr .= '<div class="col-lg-6 mt-3 roiTypeHtml" '.$roiTypeStyle.'>
                     <label class="block">
                         <span>ROI Type</span>
-                        <select id="roiType" name="roiType" class="form-select mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 hover:border-slate-400 focus:border-primary dark:border-navy-450 dark:bg-navy-700 dark:hover:border-navy-400 dark:focus:border-accent">';
+                        <select id="roiType" name="roiType" onchange="roiTypeUpdate(this)" class="form-select mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 hover:border-slate-400 focus:border-primary dark:border-navy-450 dark:bg-navy-700 dark:hover:border-navy-400 dark:focus:border-accent">';
                         $htmlStr .= '<option value="">Select</option>';
                         $htmlStr .= '<option value="reducing_roi" '.$reducing_roiSel.' '.$reducing_roiSelDis.' class="all_loan_type" >Reducing ROI</option>';
                         $htmlStr .= '<option value="fixed_interest_roi"'.$fixed_interest_roiSel.' '.$fixed_interest_roiSelDis.' class="all_loan_type new_loan_type" >Fixed Interest ROI</option>';
                         $htmlStr .= '<option value="quaterly_interest"'.$quaterly_interestSel.' '.$quaterly_interestSelDis.' class="all_loan_type new_loan_type" >Quarterly Interest</option>';
                         $htmlStr .= '<option value="bullet_repayment"'.$bullet_repaymentSel.' '.$bullet_repaymentSelDis.' class="all_loan_type" >Bullet Repayment</option>';
                                                     
-                    $htmlStr .= '</select>
-                    </label>
+                    $htmlStr .= '</select>';
+
+                    if((int)$loanDetails->paidInterest != 0){
+                        $htmlStr .= '<div class="paidFullInterest form-check">
+                            <input class="form-check-input" checked name="paidFullInterest" type="checkbox" value="1" id="paidFullInterest">
+                            <label class="form-check-label" for="paidFullInterest">
+                                Already Paid Full Interest
+                            </label>
+                        </div>';
+                    }
+
+
+                    $htmlStr .= '</label>
                 </div>';
 
             $htmlStr .= '<div class="col-lg-6 mt-3 approveTenureHtml" '.$loanStyleTenure.'>
@@ -1757,7 +1780,7 @@ class ApplyLoanController extends Controller
             AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
         } else {
             AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
-            AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
+            // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
         }
         echo json_encode(['status'=>'success','message'=>'Loan has been sent for admin approval.']); exit;
     }
@@ -1780,6 +1803,7 @@ class ApplyLoanController extends Controller
         $plateformFee=$request->plateformFee;
         $insurance=$request->insurance;
         $roiType=$request->roiType;
+        $isPaidInterest = $request->paidFullInterest ?? 0;
         $tds = isset($request->tds) ? $request->tds  : 0;
 
         $validFromDate=(strtotime($request->validFromDate)) ? date('Y-m-d',strtotime($request->validFromDate)) : '';
@@ -1841,6 +1865,7 @@ class ApplyLoanController extends Controller
         $saveArr['tenure']=$approveTenure;
         $saveArr['approvedTenure']=$approveTenure;
         $saveArr['rateOfInterest']=$approvedRoi;
+        
         $saveArr['invoiceFile']=$image;
         $saveArr['principleChargesDetails']=$principleChargesStr;
         $saveArr['principleCharges']=$principleCharges;
@@ -1929,7 +1954,7 @@ class ApplyLoanController extends Controller
                 if($roiType=='reducing_roi')
                 {
                     $monthlyEmiLabel='Monthly EMI';
-                    $emisDetailsArr=$objComm->getEmisPMT($numOfEmis,$approvedRoi,$approvedAmount,$payment_date,$tds);
+                    $emisDetailsArr=$objComm->getEmisPMT($numOfEmis,$approvedRoi,$approvedAmount,$payment_date,$tds,$isPaidInterest);
                 }else if($roiType=='quaterly_interest')
                 {
                     $monthlyEmiLabel='Quarterly EMI';
@@ -1937,7 +1962,7 @@ class ApplyLoanController extends Controller
                 }else if($roiType=='fixed_interest_roi')
                 {
                     $monthlyEmiLabel='Monthly EMI';
-                    $emisDetailsArr=$objComm->getFixedInterestEmis($numOfEmis,$approvedRoi,$approvedAmount,$payment_date,$tds);
+                    $emisDetailsArr=$objComm->getFixedInterestEmis($numOfEmis,$approvedRoi,$approvedAmount,$payment_date,$tds,$isPaidInterest);
                 }
             }
             
@@ -1949,10 +1974,14 @@ class ApplyLoanController extends Controller
             }
             
         }
+        $paidInterest=0;
+        if($isPaidInterest){
+            $paidInterest=$totalInterest;
+        }
 
         $emisDetailsStr=(!empty($emisDetailsArr)) ? json_encode($emisDetailsArr) : '';
 
-        ApplyLoanHistory::where('id',$loanId)->update(['monthlyEMI'=>$monthlyEMI,'totalInterest'=>$totalInterest,'emisDetailsStr'=>$emisDetailsStr]);
+        ApplyLoanHistory::where('id',$loanId)->update(['monthlyEMI'=>$monthlyEMI,'totalInterest'=>$totalInterest,'paidInterest'=>$paidInterest,'emisDetailsStr'=>$emisDetailsStr]);
 
         }
 
@@ -1980,10 +2009,10 @@ class ApplyLoanController extends Controller
             AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com", "Shorya Mittal", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
             // AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
             AppServiceProvider::sendMail("ashish.kumar@maxemocapital.com", "Ashish Kumar", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
-            AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
+           // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
         } else {
             AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
-            AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
+            //AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
         }
         echo json_encode(['status'=>'success','message'=>'Loan has been sent for admin approval.']); exit;
     }

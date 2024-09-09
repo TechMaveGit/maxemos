@@ -26,6 +26,45 @@ use Validator;
 
 class CommonController extends Controller
 {
+    public $indianStates = [
+        'AP' => 'Andhra Pradesh',
+        'AR' => 'Arunachal Pradesh',
+        'AS' => 'Assam',
+        'AN' => 'Andaman and Nicobar Islands',
+        'BR' => 'Bihar',
+        'CT' => 'Chhattisgarh',
+        'CH' => 'Chandigarh',
+        'DN' => 'Dadra and Nagar Haveli',
+        'DD' => 'Daman and Diu',
+        'DL' => 'Delhi',
+        'GA' => 'Goa',
+        'GJ' => 'Gujarat',
+        'HR' => 'Haryana',
+        'HP' => 'Himachal Pradesh',
+        'JK' => 'Jammu and Kashmir',
+        'JH' => 'Jharkhand',
+        'KA' => 'Karnataka',
+        'KL' => 'Kerala',
+        'LD' => 'Lakshadweep',
+        'MP' => 'Madhya Pradesh',
+        'MH' => 'Maharashtra',
+        'MN' => 'Manipur',
+        'ML' => 'Meghalaya',
+        'MZ' => 'Mizoram',
+        'NL' => 'Nagaland',
+        'OR' => 'Odisha',
+        'PB' => 'Punjab',
+        'PY' => 'Puducherry',
+        'RJ' => 'Rajasthan',
+        'SK' => 'Sikkim',
+        'TN' => 'Tamil Nadu',
+        'TG' => 'Telangana',
+        'TR' => 'Tripura',
+        'UP' => 'Uttar Pradesh',
+        'UT' => 'Uttarakhand',
+        'WB' => 'West Bengal'
+    ];
+
     public function index()
     {
         return view('login');
@@ -86,6 +125,7 @@ class CommonController extends Controller
                 $ipAddress = AppServiceProvider::get_client_ip();
                 $accessLoginId = SystemAccessLog::insertGetId(['userId' => $userId, 'ipAddress' => $ipAddress, 'loginDateTime' => $currentDateTime, 'created_at' => $currentDateTime, 'updated_at' => $currentDateTime]);
                 session(['userPermissions' => $userDtl[0]->userRolePermissions, 'accessLoginId' => $accessLoginId]);
+                //return redirect()->route('adminDashboard');
                 echo json_encode(['status' => 'success', 'message' => 'You have logged-in successfully.', 'URL' => route('adminDashboard')]);
             } else {
                 echo json_encode(['status' => 'error', 'message' => 'Invalid credentials, Please try again.']);
@@ -285,6 +325,11 @@ class CommonController extends Controller
 
     public function equifaxReport(Request $request, $user_id)
     {
+    
+        // dd('--');
+   
+        try{
+
         if ($request->loadreport == 1 || $request->type == "user") {
             $userDatan = User::where('id', $user_id)->first();
             $error = 0;
@@ -300,6 +345,7 @@ class CommonController extends Controller
 
         if ($request->loadreport == 2 || $request->type == "company") {
             $companyData = DB::table('employment_histories')->where(['userId' => $user_id, 'status' => 'approved', 'companyType' => 'Pvt. Ltd.'])->first();
+            $urData = User::where('id', $user_id)->first();
             $error = 0;
             if ($companyData->company_creditscore_apidata) {
                 $userData = json_decode($companyData->company_creditscore_apidata, FALSE);
@@ -308,8 +354,10 @@ class CommonController extends Controller
             }
         }
 
-        if ($request->loadreport == 3 || $request->type == "company") {
-            $partner = LoanKycOtherPendetail::where(['userId' => $user_id])->first();
+
+
+        if ($request->loadreport == 3 || $request->type == "partner") {
+            $partner = LoanKycOtherPendetail::where(['id' => $user_id])->first();
             $error = 0;
             if ($partner->creditscore_apidata) {
                 $userData = json_decode($partner->creditscore_apidata, FALSE);
@@ -319,8 +367,12 @@ class CommonController extends Controller
                 $userData = $partner;
             }
         }
+        
 
-        if ((($request->loadreport == 1 || $request->loadreport == 2 || $request->loadreport == 3) && isset($userData)) || $error) {
+
+
+        if ((($request->loadreport == 1 || $request->loadreport == 2 || $request->loadreport == 3) && (isset($userData) || isset($companyData)))) {
+       
             if ($request->loadreport == 1 || $request->loadreport == 3) {
                 $customerdata = array();
                 $customerdata['name'] = $userData->name;
@@ -339,7 +391,7 @@ class CommonController extends Controller
                 } else {
                     $customerdata['gender'] = 'O';
                 }
-                $customerdata['fatherName'] = $userData->fatherName;
+                $customerdata['fatherName'] = $userData->fatherName??'';
                 if ($request->loadreport == 1) {
                     if (!$customerdata['dateOfBirth']) {
                         return redirect()->back()->with('error', 'Please Fill Customer Date Of Birth');
@@ -360,6 +412,7 @@ class CommonController extends Controller
                     }
                 }
             } elseif ($request->loadreport == 2) {
+            
                 $customerdata = array();
                 $customerdata['name'] = $companyData->employerName;
                 $customerdata['addressLine1'] = $companyData->address ?? '';
@@ -369,19 +422,30 @@ class CommonController extends Controller
                 $customerdata['mobile'] = $companyData->mobileNo ?? auth()->user()->mobile;
                 $customerdata['email'] = $companyData->emailId ?? auth()->user()->email;
                 $customerdata['pancard_no'] = $companyData->companyPan;
-
-                $customerdata['fatherName'] = $companyData->fatherName;
+                $customerdata['dateOfBirth'] = $urData->dateOfBirth??'';
+                if ($urData->gender == 'Male') {
+                    $customerdata['gender'] = 'M';
+                } elseif ($urData->gender == 'Female') {
+                    $customerdata['gender'] = 'F';
+                } else {
+                    $customerdata['gender'] = 'O';
+                }
+                $customerdata['fatherName'] = $urData->fatherName??'';
+                foreach($this->indianStates as $kk=>$sta){
+                    if(strtolower($sta) == strtolower($companyData->state)){
+                        $customerdata['state'] = $kk;
+                    }
+                }
+                // dd($companyData);
                 if (!$customerdata['dateOfBirth']) {
                     return redirect()->back()->with('error', 'Please Fill Customer Date Of Birth');
                 } elseif (!$customerdata['state']) {
-                    // dd('--');
                     return redirect()->back()->with('error', 'Please Fill Customer State');
                 } elseif (!$customerdata['pancard_no']) {
                     return redirect()->back()->with('error', 'Please Fill Customer Pancard Number');
                 }
             }
             $lobObj = new GloadController();
-            // dd($customerdata);
             if ($customerdata) {
                 if (config('app.env') == "production") {
                     $equifaxData = $lobObj->eportuatData($customerdata);
@@ -398,8 +462,9 @@ class CommonController extends Controller
                 if ($request->loadreport == 1) {
                     User::where('id', $user_id)->update(['credit_score' => $score, 'creditscore_apidata' => json_encode($equifaxData)]);
                 } elseif ($request->loadreport == 2) {
-                    EmploymentHistory::where(['userId' => $user_id, 'status' => 'approved', 'companyType' => 'Pvt. Ltd.'])->update(['credit_score' => $score, 'creditscore_apidata' => json_encode($equifaxData)]);
+                    EmploymentHistory::where(['userId' => $user_id, 'status' => 'approved', 'companyType' => 'Pvt. Ltd.'])->update(['company_credit_score' => $score, 'company_creditscore_apidata' => json_encode($equifaxData)]);
                 } elseif ($request->loadreport == 3) {
+                
                     LoanKycOtherPendetail::where('id', $user_id)->update(['credit_score' => $score, 'creditscore_apidata' => json_encode($equifaxData)]);
                 }
                 $userData = json_decode(json_encode($equifaxData), FALSE);
@@ -418,6 +483,9 @@ class CommonController extends Controller
         } else {
             return redirect()->back();
         }
+    }catch(\Exception $e){
+        dd($e->getMessage());
+    }
     }
 
     public function techSupport()
@@ -1544,7 +1612,7 @@ class CommonController extends Controller
         // return $emiArr;
     }
 
-    public function getFixedInterestEmis($month, $roi, $balance, $payment_date, $tds)
+    public function getFixedInterestEmis($month, $roi, $balance, $payment_date, $tds,$isPaidInterest)
     {
 
         $emiArr = [];
@@ -1552,7 +1620,10 @@ class CommonController extends Controller
         $totalPaybleAmount = 0;
 
         $oneYearInterest = ($balance * $roi) / 100;
+        
         $oneMonthInterest = $oneYearInterest / 12;
+        
+       
 
         $totalInterest = $oneMonthInterest * $month;
         $tdsAmount = (round($oneMonthInterest) * $tds) / 100;
@@ -1562,7 +1633,11 @@ class CommonController extends Controller
         $netemi = $emi - $tdsAmount;
         $startEmi = $emi;
 
-        $totalPaybleAmount = $balance + $netInterest;
+        if($isPaidInterest){
+            $totalPaybleAmount = $balance;
+        }else{
+            $totalPaybleAmount = $balance + $netInterest;
+        }
         $totalInterestnew = 0;
         // if(strtotime(date('Y-m-d',strtotime($payment_date))) > strtotime(date('Y-m-12'))){
         //     $payment_date = date('Y-m-d',strtotime("+1 month",strtotime($payment_date)));
@@ -1577,13 +1652,22 @@ class CommonController extends Controller
             $netInterest = $interest - $tdsAmount;
             $totalInterestnew = $totalInterestnew + $netInterest;
 
-            $principal = $emi - $interest;
+            if($isPaidInterest){
+                $principal = $emi;
+            }else{
+                $principal = $emi - $interest;
+            }
+           
 
             $balance = $balance - $principal;
             $payment_date = date('Y-m-d', strtotime("+1 month", strtotime($payment_date)));
 
             $payment_date = $this->showDate($payment_date);
 
+            if($isPaidInterest){
+                $interest=0;
+                $netInterest = 0;
+            }
 
             $emiArr['totalPaybleAmount'] = round($totalPaybleAmount);
             $emiArr['totalInterest'] = round($totalInterestnew);
@@ -1645,17 +1729,24 @@ class CommonController extends Controller
         return $emiArr;
     }
 
-    public function getEmisPMT($month, $roi, $balance, $payment_date, $tds)
+    public function getDaysInMonth($month, $year) {
+        return cal_days_in_month(CAL_GREGORIAN, $month, $year);
+    }
+
+    public function getEmisPMT($month, $roi, $balance, $payment_date, $tds,$isPaidInterest)
     {
         $period = $month / 12;
+        $preview_payment_date = $payment_date;
+        // dd($payment_date);
+       
+        $emi = $this->PMT($roi, $period, $balance,$isPaidInterest);
+        $totalLoanAmount = $balance;
 
-        $emi = $this->PMT($roi, $period, $balance);
-
+        // dd($emi);
+        // $emi  -=$isPaidInterest;
         $emiArr = [];
         $totalInterest = 0;
         $totalPaybleAmount = 0;
-
-
 
         // if(strtotime(date('Y-m-d',strtotime($payment_date))) > strtotime(date('Y-m-12'))){
         //     $payment_date = date('Y-m-d',strtotime("+1 month",strtotime($payment_date)));
@@ -1663,7 +1754,20 @@ class CommonController extends Controller
 
         for ($i = 1; $i <= $month; $i++) {
 
-            $interest = (($roi / 100) * $balance) / 12;
+            $cyear = date('Y',strtotime($preview_payment_date. ' +'.$i.' month'));
+            $cmonth = date('m',strtotime($preview_payment_date. ' +'.$i.' month'));
+
+            $days_in_month = $this->getDaysInMonth($cmonth, $cyear);
+            // echo $days_in_month.'/'.$cyear.'/'.$cmonth.'--';
+
+            $dbalance = $balance;
+            if($isPaidInterest){
+                $dbalance = $balance-$emi;
+            }
+
+            $interest = $dbalance * ($roi / 100 / 365) * $days_in_month;
+
+            // dd($interest);
 
             $tdsAmount = 0;
             $netInterest = $interest;
@@ -1672,21 +1776,28 @@ class CommonController extends Controller
                 $netInterest = round($interest) - $tdsAmount;
             }
 
+            if($isPaidInterest){
+                $principal = $emi;
+            }else{
+                $principal = $emi - $interest;
+            }
 
-
-            $principal = $emi - $interest;
-
+            
             $netemi  = $emi - $tdsAmount;
-
-
+            // dd();
             $balance = $balance - $principal;
             $payment_date = date('Y-m-d', strtotime("+1 month", strtotime($payment_date)));
 
-
-
             $payment_date = $this->showDate($payment_date);
 
-            $totalPaybleAmount = $totalPaybleAmount + $interest + $principal;
+            // if($isPaidInterest){
+            //     $totalPaybleAmount = $totalPaybleAmount + $principal;
+            //     $netemi = 0;
+            //     $interest = 0;
+            // }else{
+                $totalPaybleAmount = $totalPaybleAmount + $interest + $principal;
+            // }
+            
             $totalInterest = $totalInterest + $netInterest;
 
             $emiArr['totalPaybleAmount'] = round($totalPaybleAmount);
@@ -1694,19 +1805,32 @@ class CommonController extends Controller
             $emiArr['emiAmount'] = round($emi);
             $emiArr['rateOfInterest'] = $roi;
             $emiArr['tenureInMonth'] = $month;
-            $emiArr['emiList'][] = ['emiSr' => $i, 'payDate' => $payment_date, 'emiAmount' => round($emi), 'netemiAmount' => round($netemi), 'interest' => round($interest), 'tdsAmount' => $tdsAmount, 'netInterest' => $netInterest, 'principle' => round($principal), 'balance' => round($balance)];
+
+            if($isPaidInterest){
+                $newemi = $totalLoanAmount/$month;
+            }
+
+            $emiArr['emiList'][] = ['emiSr' => $i, 'payDate' => $payment_date, 'emiAmount' => round($newemi??$emi), 'netemiAmount' => round($netemi), 'interest' => round($interest), 'tdsAmount' => $tdsAmount, 'netInterest' => $netInterest, 'principle' => round($principal), 'balance' => round($balance)];
         }
+        // dd($emiArr);
         return $emiArr;
     }
 
-    public function PMT($interest, $period, $loan_amount)
+    public function PMT($interest, $period, $loan_amount,$isPaidInterest=null)
     {
         $interest = (float)$interest;
         $period = (float)$period;
         $loan_amount = (float)$loan_amount;
         $period = $period * 12;
         $interest = $interest / 1200;
-        $amount = $interest * -$loan_amount * pow((1 + $interest), $period) / (1 - pow((1 + $interest), $period));
+
+        if($isPaidInterest){
+            $amount = $loan_amount/$period;
+        }else{
+            $amount = $interest * -$loan_amount * pow((1 + $interest), $period) / (1 - pow((1 + $interest), $period));
+        }
+
+       
         return $amount;
     }
 

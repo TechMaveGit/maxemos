@@ -3,7 +3,7 @@
 use App\Http\Controllers\ApplyLoanController;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CommonController as CommonController;
+use App\Http\Controllers\CommonController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EMIController;
@@ -333,6 +333,13 @@ Route::group(['prefix'=>'admin', 'middleware'=>'auth:web'], function(){
     
     Route::get('aum-report',[ReportController::class,'aumReports'])->name('aumReports');
     Route::post('filter-aum-report',[ReportController::class,'filterAumReports'])->name('filterAumReports');
+    
+    Route::get('new-customer',[ReportController::class,'newCustomReports'])->name('newCustomReports');
+    Route::post('filter-customer-report',[ReportController::class,'filterNewCustomerReport'])->name('filterNewCustomerReport');
+
+    Route::get('raw-pending-files',[ReportController::class,'rawPendingFileReports'])->name('rawPendingFileReports');
+    Route::post('filter-raw-pending-files',[ReportController::class,'filterRawPendingFileReport'])->name('filterRawPendingFileReport');
+
     Route::get('payment-report',[ReportController::class,'paymentReports'])->name('paymentReports');
     Route::post('filter-payment-report',[ReportController::class,'filterPaymentReports'])->name('filterPaymentReports');
 
@@ -736,6 +743,7 @@ Route::get('/testdata',function(){
 // Route::get('/test-autopay',[TestController::class,'eashInhert']);
 // Route::get('/test-autopay1',[TestController::class,'autoDebitAuth']);
 // Route::get('/test-autopay2',[TestController::class,'eashautoPay']);
+Route::get('/test-12',[TestController::class,'index']);
 
 
 Route::get('/test-raw',function(){

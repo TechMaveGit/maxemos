@@ -121,8 +121,8 @@ class ReportController extends Controller
 
     public function filterRawPendingFileReport(Request $request){
         try{
-            $fromDate = (strtotime($request->fromDate)) ? date('Y-m-d', strtotime($request->fromDate)) : '';
-            $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : '';
+            $fromDate = (strtotime($request->fromDate)) ? date('Y-m-d', strtotime($request->fromDate)) : null;
+            $toDate = (strtotime($request->toDate)) ? date('Y-m-d', strtotime($request->toDate)) : null;
     
             $SUBQRY = '';
             

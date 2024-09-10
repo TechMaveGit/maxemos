@@ -232,7 +232,7 @@ class ApplyLoanController extends Controller
             $image=AppServiceProvider::uploadImageCustom('idProofBack','user-docs');
             $saveUp['idProofBack']=$image;
 
-            if(config('app.env') == "production"){
+            if(config('app.env') == "production" || config('app.env') == "testing"){
                 $aadhaar=$lobObj->ocr_adhaar_verification(1);
                 if(empty($aadhaar)){
                     //echo json_encode(['status'=>'error','message'=>'Invalid id proof, Please try again.']); exit;
@@ -245,7 +245,7 @@ class ApplyLoanController extends Controller
             $image=AppServiceProvider::uploadImageCustom('panCardFront','user-docs');
             $saveUp['panCardFront']=$image;
 
-            if(config('app.env') == "production"){
+            if(config('app.env') == "production" || config('app.env') == "testing"){
                 $pancheck=$lobObj->ocr_adhaar_verification(3,'panCardFront');
                 if(empty($pancheck)){
                     //echo json_encode(['status'=>'error','message'=>'Invalid id proof, Please try again.']); exit;
@@ -261,7 +261,7 @@ class ApplyLoanController extends Controller
         $kyc1_pancard_no = (isset($loanDetailsData) && isset($loanDetailsData[0])) ? $loanDetailsData[0]->pancard_no : null;
        
         
-        if(config('app.env') == "production" && $request->hasFile('kyc1_pancard_img')){
+        if((config('app.env') == "production" || config('app.env') == "testing") && $request->hasFile('kyc1_pancard_img')){
             $kyc1pancard=$lobObj->ocr_adhaar_verification(3,'kyc1_pancard_img');
             // dd($kyc1pancard);
             if(empty($kyc1pancard) || !isset($kyc1pancard->msg->father_name)){
@@ -289,7 +289,7 @@ class ApplyLoanController extends Controller
         
         $kyc2_others = [];
         $kyc2_pancard_no = (isset($loanDetailsData) && isset($loanDetailsData[1])) ? $loanDetailsData[1]->pancard_no : null;
-        if(config('app.env') == "production" && $request->hasFile('kyc2_pancard_img')){
+        if((config('app.env') == "production" || config('app.env') == "testing") && $request->hasFile('kyc2_pancard_img')){
             $kyc2pancard=$lobObj->ocr_adhaar_verification(3,'kyc2_pancard_img');
             if(empty($kyc2pancard) || !isset($kyc2pancard->msg->father_name)){
                 return redirect()->back()->with('error','Invalid Photo of Pan Card Partner 2.');
@@ -848,9 +848,11 @@ class ApplyLoanController extends Controller
                         AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com","Shorya Mittal","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
                         AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com","Vipul Mittal","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
                         AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com","Vivek Mittal","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
-                     }else{
-                        // AppServiceProvider::sendMail("raju@techmavesoftware.com","Raju","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
-                         AppServiceProvider::sendMail("basant@techmavesoftware.com","Basant","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
+                     }else if(config('app.env') == "testing"){
+                        AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
+                     }
+                     else{
+                        AppServiceProvider::sendMail("basant@techmavesoftware.com","Basant","New Raw Material Financing Loan Approved  | ".$verifyWith,$htmlSt);
                      }
                 }
                 
@@ -1481,7 +1483,9 @@ class ApplyLoanController extends Controller
                             if($toMail){
                                 AppServiceProvider::sendMail($toMail,$toUser,$subject,$htmlSt);
                             }
-                        }else{
+                        }else if(config('app.env') == "testing"){
+                            AppServiceProvider::sendMail("anjali.negi@maxemocapital.com",$toUser,$subject,$htmlSt);
+                         }else{
                             AppServiceProvider::sendMail("basant@techmavesoftware.com",$toUser,$subject,$htmlSt);
                         }
 
@@ -1778,7 +1782,9 @@ class ApplyLoanController extends Controller
               
             AppServiceProvider::sendMail("ashish.kumar@maxemocapital.com", "Ashish Kumar", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
             AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
-        } else {
+        } else if(config('app.env') == "testing"){
+            AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
+         }else {
             AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
             // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
         }
@@ -2010,7 +2016,9 @@ class ApplyLoanController extends Controller
             // AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
             AppServiceProvider::sendMail("ashish.kumar@maxemocapital.com", "Ashish Kumar", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
            // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
-        } else {
+        } else if(config('app.env') == "testing"){
+            AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
+         }else {
             AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
             //AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Request #LF0".$loanId." (".$loanCategory.") | " . $verifyWith, $htmlStAdmin);
         }

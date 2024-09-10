@@ -109,37 +109,38 @@ class CustomerController extends Controller
         return view('web.forget-password');
     }
 
-public function careerForm(Request $request){
-        $this->validate($request,[
+    public function careerForm(Request $request)
+    {
+        $this->validate($request, [
             "applied_for" => 'required',
-            "fullname"=>'required',
+            "fullname" => 'required',
             "email" => 'required|email',
             "phone_number" => 'required',
             "work_experience" => 'required|min:50',
             "file1" => 'required'
         ]);
 
-        $image='';
+        $image = '';
         if ($request->hasFile('file1')) {
-            $image=AppServiceProvider::uploadImageCustom('file1','resume');
+            $image = AppServiceProvider::uploadImageCustom('file1', 'resume');
         }
-        
+
 
         CareerRequest::create([
-            "career_post_id"=>$request->applied_for,
-            "full_name"=>$request->fullname,
-            "email"=>$request->email,
-            "mobile"=>$request->phone_number,
-            "describe_work"=>$request->work_experience,
-            "cv"=>$image
+            "career_post_id" => $request->applied_for,
+            "full_name" => $request->fullname,
+            "email" => $request->email,
+            "mobile" => $request->phone_number,
+            "describe_work" => $request->work_experience,
+            "cv" => $image
         ]);
 
-        return redirect()->back()->with('success','Your Application Submitted Successfully !');
+        return redirect()->back()->with('success', 'Your Application Submitted Successfully !');
     }
 
     public function userDashboard()
     {
-        if(session()->get('done') == 1){
+        if (session()->get('done') == 1) {
             session()->forget('step');
         }
         $userloggedData = $this->isUserLoggedIn();
@@ -158,29 +159,29 @@ public function careerForm(Request $request){
 
         $allLoans = DB::table('apply_loan_histories')->leftJoin('categories', 'categories.id', 'apply_loan_histories.loanCategory')->where('userId', $userId)->orderBy('apply_loan_histories.loanCategory')->get(['apply_loan_histories.id', 'categories.name']);
         // dd($allLoans);
-        return view('web.dashboard', compact('allLoans', 'userloggedData', 'tenures', 'newUserRes', 'userBankDtl', 'userDocDtl','userKycDocDtl', 'userEmploymentHistoryArr', 'coApplicantDtlARR', 'otherKycDocs', 'categories'));
+        return view('web.dashboard', compact('allLoans', 'userloggedData', 'tenures', 'newUserRes', 'userBankDtl', 'userDocDtl', 'userKycDocDtl', 'userEmploymentHistoryArr', 'coApplicantDtlARR', 'otherKycDocs', 'categories'));
     }
 
     public function userLoanDetailsHtml(Request $request)
     {
         $loanId = $request->selectedloan;
-        session()->put('sessionLoan',$loanId);
+        session()->put('sessionLoan', $loanId);
         $loanD = ApplyLoanHistory::whereId($loanId)->first();
         $userloggedData = $this->isUserLoggedIn();
-        if(isset($request->userId) && $request->userId) {
+        if (isset($request->userId) && $request->userId) {
             $userId = $request->userId;
-        }else{
+        } else {
             $userId = $userloggedData->id;
         }
-        
-        
+
+
         $loanDetails = DB::table('apply_loan_histories')->leftJoin('tenures', 'tenures.id', 'apply_loan_histories.tenure')->select('apply_loan_histories.*', 'tenures.name')->where('apply_loan_histories.id', $loanId)->first();
         $emiDetails = LoanEmiDetail::where(['userId' => $userId, 'loanId' => $loanId])->orderBy('emiSr', 'asc')->get();
         $principleChargesDetails = json_decode($loanDetails->principleChargesDetails);
         if ($loanD->loanCategory != 3) { ?>
-        
+
             <div class="row">
-            <div class="col-md-12 text-right"><strong>Loan Status : </strong><span class="badge badge-primary" style="font-size: 15px;"><?php if($loanD->isAdminApproved == "rejected"){ ?> Rejected <?php }else{ ?></php> <?=  ucwords(str_replace('-',' ',$loanD->status))  ?> <?php } ?></span></div>
+                <div class="col-md-12 text-right"><strong>Loan Status : </strong><span class="badge badge-primary" style="font-size: 15px;"><?php if ($loanD->isAdminApproved == "rejected") { ?> Rejected <?php } else { ?></php> <?= ucwords(str_replace('-', ' ', $loanD->status))  ?> <?php } ?></span></div>
                 <div class="col-lg-4">
                     <div class="business_card_a">
                         <div class="detail_a">
@@ -213,9 +214,11 @@ public function careerForm(Request $request){
                             </div>
                             <div class="data_">
                                 <p>
-                                <?php if($loanDetails->status == "disbursed"){ ?> 
-                                    <?= $loanDetails->approvedAmount ?>
-                                    <?php }else{ echo 0; } ?>
+                                    <?php if ($loanDetails->status == "disbursed") { ?>
+                                        <?= $loanDetails->approvedAmount ?>
+                                    <?php } else {
+                                        echo 0;
+                                    } ?>
                                 </p>
                             </div>
                         </div>
@@ -227,13 +230,13 @@ public function careerForm(Request $request){
                                 <p><?= $loanDetails->name  ?></p>
                             </div>
                         </div>
-                        
+
 
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="business_card_a">
-                        
+
                         <div class="detail_a">
                             <div class="title_">
                                 <h6>Interest:</h6>
@@ -242,15 +245,15 @@ public function careerForm(Request $request){
                                 <p><?= $loanDetails->rateOfInterest ?>%</p>
                             </div>
                         </div>
-                        <?php if($loanD->loanCategory != '8'){ ?>
-                         <div class="detail_a" style="display:none;">
-                            <div class="title_">
-                                <h6>Monthly EMI :</h6>
+                        <?php if ($loanD->loanCategory != '8') { ?>
+                            <div class="detail_a" style="display:none;">
+                                <div class="title_">
+                                    <h6>Monthly EMI :</h6>
+                                </div>
+                                <div class="data_">
+                                    <p><?= $loanDetails->monthlyEMI ?></p>
+                                </div>
                             </div>
-                            <div class="data_">
-                                <p><?= $loanDetails->monthlyEMI ?></p>
-                            </div>
-                        </div>  
                         <?php } ?>
                         <div class="detail_a">
                             <div class="title_">
@@ -284,7 +287,7 @@ public function careerForm(Request $request){
                                 <p><?= $principleChargesDetails->plateformFee ?? 0 ?></p>
                             </div>
                         </div>
-                        
+
                     </div>
                 </div>
                 <div class="col-lg-4">
@@ -302,7 +305,8 @@ public function careerForm(Request $request){
                                 <h6>Include PF/Insurance Fee : </h6>
                             </div>
                             <div class="data_">
-                                <p><?php if($loanDetails->exclude_pfif && $loanDetails->exclude_pfif==1) echo 'Yes'; else echo 'No'; ?></p>
+                                <p><?php if ($loanDetails->exclude_pfif && $loanDetails->exclude_pfif == 1) echo 'Yes';
+                                    else echo 'No'; ?></p>
                             </div>
                         </div>
                         <div class="detail_a">
@@ -310,12 +314,15 @@ public function careerForm(Request $request){
                                 <h6>Include Extradays Amount : </h6>
                             </div>
                             <div class="data_">
-                                <p><?php if($loanDetails->include_extradays && $loanDetails->include_extradays==1) echo 'Yes'; else echo 'No'; ?></p>
+                                <p><?php if ($loanDetails->include_extradays && $loanDetails->include_extradays == 1) echo 'Yes';
+                                    else echo 'No'; ?></p>
                             </div>
                         </div>
                         <div class="detail_a">
                             <div class="title_">
-                                <h6>Disbursed <?php if(isset($request->userId) && $request->userId) {echo 'scheduled';} ?> date : </h6>
+                                <h6>Disbursed <?php if (isset($request->userId) && $request->userId) {
+                                                    echo 'scheduled';
+                                                } ?> date : </h6>
                             </div>
                             <div class="data_">
                                 <p><?= $loanDetails->disbursedDate ?></p>
@@ -327,15 +334,15 @@ public function careerForm(Request $request){
                             </div>
                             <div class="data_">
                                 <p>
-                                <?php if($loanDetails->status == "disbursed"){ ?>    
-                                <?php echo $loanDetails->exclude_pfif == '0' ? $loanDetails->netDisbursementAmount : $loanDetails->disbursementAmount; ?>
-                            <?php }else { ?>
-                                0
-                                <?php } ?>
-                            </p>
+                                    <?php if ($loanDetails->status == "disbursed") { ?>
+                                        <?php echo $loanDetails->exclude_pfif == '0' ? $loanDetails->netDisbursementAmount : $loanDetails->disbursementAmount; ?>
+                                    <?php } else { ?>
+                                        0
+                                    <?php } ?>
+                                </p>
                             </div>
                         </div>
-                        
+
 
 
                     </div>
@@ -359,36 +366,37 @@ public function careerForm(Request $request){
                                             EMI ID
                                         </th>
                                         <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">
-                                         <?php if($loanDetails->loanCategory==8){ ?> MONTHLY INTEREST <?php }else{ ?> EMI AMOUNT  <?php } ?>
+                                            <?php if ($loanDetails->loanCategory == 8) { ?> MONTHLY INTEREST <?php } else { ?> EMI AMOUNT <?php } ?>
                                         </th>
-                                       <?php if($loanDetails->tds > 0 && $loanDetails->loanCategory == 1){ ?>
-                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">NET EMI Amount</th>
+                                        <?php if ($loanDetails->tds > 0 && $loanDetails->loanCategory == 1) { ?>
+                                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">NET EMI Amount</th>
                                         <?php } ?>
                                         <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">
-                                        PRINCIPLE
+                                            PRINCIPLE
                                         </th>
-                                        
+
                                         <?php if ($loanDetails->loanCategory != 8) { ?>
                                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">
                                                 INTEREST
                                             </th>
                                         <?php  } ?>
-                                        <?php if($loanDetails->tds > 0){ ?>
+                                        <?php if ($loanDetails->tds > 0) { ?>
                                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">
                                                 TDS %
                                             </th>
                                             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">
                                                 TDS AMOUNT
                                             </th>
-                                        <?php if($loanDetails->loanCategory == 8){ ?>
+                                            <?php if ($loanDetails->loanCategory == 8) { ?>
                                                 <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">NET MONTHLY INTEREST</th>
-                                        <?php  }else{ ?>
+                                            <?php  } else { ?>
                                                 <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">NET INTEREST</th>
-                                        <?php  }} ?>
-                                        <?php if($loanDetails->loanCategory!=8){ ?>
-                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">
-                                            PAYBLE AMOUNT
-                                        </th>
+                                        <?php  }
+                                        } ?>
+                                        <?php if ($loanDetails->loanCategory != 8) { ?>
+                                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">
+                                                PAYBLE AMOUNT
+                                            </th>
                                         <?php } ?>
                                         <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">
                                             BALANCE
@@ -433,23 +441,23 @@ public function careerForm(Request $request){
                                             $emiDueDate = (strtotime($erow->emiDueDate)) ? date('d/m/Y', strtotime($erow->emiDueDate)) : '';
                                             $transactionDate = (strtotime($erow->transactionDate)) ? date('d/m/Y', strtotime($erow->transactionDate)) : '';
                                             $lateCarges = ($erow->lateCharges) ? $erow->lateCharges : '';
-                                            $totalPaybleAmt= round($erow->netemiAmount+$erow->lateCharges,2);
+                                            $totalPaybleAmt = round($erow->netemiAmount + $erow->lateCharges, 2);
                                             $EaseBuzzApiController = new EaseBuzzApiController();
-                                            
-                                            if($erow->payment_links){
+
+                                            if ($erow->payment_links) {
                                                 $alreadyPay = 1;
                                             }
 
                                             if ($erow->status == 'pending' && !isset($dd)) {
                                                 $dd = 1;
-                                                if(!$erow->payment_links){
-                                                    if($alreadyPay == 1){
+                                                if (!$erow->payment_links) {
+                                                    if ($alreadyPay == 1) {
                                                         $paylink_url = $EaseBuzzApiController->easyCollectionLink($erow->id);
-                                                    }else{
+                                                    } else {
                                                         $paylink_url = $EaseBuzzApiController->enachEMIFirstApi($erow->id);
                                                     }
-                                                    DB::table('loan_emi_details')->where('id',$erow->id)->update(['payment_links'=>$paylink_url]);
-                                                }else{
+                                                    DB::table('loan_emi_details')->where('id', $erow->id)->update(['payment_links' => $paylink_url]);
+                                                } else {
                                                     $paylink_url = $erow->payment_links;
                                                 }
                                             }
@@ -457,21 +465,21 @@ public function careerForm(Request $request){
                                             <tr>
                                                 <td><?= $EMIID ?></td>
                                                 <td><?= $erow->emiAmount ?></td>
-                                               <?php if($loanDetails->tds > 0 && $loanDetails->loanCategory == 1){ ?>
-                                                    <td><?= number_format($erow->netemiAmount,2) ?></td>
-                                               <?php } ?>
+                                                <?php if ($loanDetails->tds > 0 && $loanDetails->loanCategory == 1) { ?>
+                                                    <td><?= number_format($erow->netemiAmount, 2) ?></td>
+                                                <?php } ?>
                                                 <td><?= $erow->principle ?></td>
-                   
+
                                                 <?php if ($loanDetails->loanCategory != 8) { ?>
                                                     <td><?= $erow->interest ?></td>
                                                 <?php  } ?>
-                                               <?php if($loanDetails->tds > 0){ ?>
-                                                    <td><?=$loanDetails->tds ?></td>
-                                                    <td><?=$erow->tdsAmount ?></td>
-                                                    <td><?=$erow->netInterest ?></td>
-                                               <?php } ?>
-                                               <?php if($loanDetails->loanCategory!=8){ ?>
-                                                    <td><?=$totalPaybleAmt ?></td>
+                                                <?php if ($loanDetails->tds > 0) { ?>
+                                                    <td><?= $loanDetails->tds ?></td>
+                                                    <td><?= $erow->tdsAmount ?></td>
+                                                    <td><?= $erow->netInterest ?></td>
+                                                <?php } ?>
+                                                <?php if ($loanDetails->loanCategory != 8) { ?>
+                                                    <td><?= $totalPaybleAmt ?></td>
                                                 <?php } ?>
                                                 <td><?= $erow->balance ?></td>
                                                 <td><?= $emiDate ?></td>
@@ -506,8 +514,8 @@ public function careerForm(Request $request){
             $loanDetails = DB::select("SELECT alh.*,c.name as categoryName,p.productName,t1.name as appliedTenureD,t2.name as approvedTenureD FROM apply_loan_histories alh LEFT JOIN categories c ON alh.loanCategory=c.id LEFT JOIN products p ON alh.productId=p.id LEFT JOIN tenures t1 ON alh.tenure=t1.id LEFT JOIN tenures t2 ON alh.approvedTenure=t2.id where alh.id='$loanId' and alh.loanCategory='3'  ORDER BY alh.id DESC");
             // echo json_encode(['data'=>$loanDetails]);
             // dd($loanDetails);
-            if($loanDetails){
-            $loanDetails = $loanDetails[0];
+            if ($loanDetails) {
+                $loanDetails = $loanDetails[0];
             }
             $userId = $loanDetails->userId;
             $userDtl = User::getUserDetailsById($userId);
@@ -534,303 +542,325 @@ public function careerForm(Request $request){
             $totalCredit = $credHistoryArr['totalCredit'];
             $totalDebit = $credHistoryArr['totalDebit'];
             $filterType = $request->filterType ?? 'all';
-            if($filterType=='all')
-            {
-                $selQry="SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.loanId='$loanId' AND rmc.status='success' ORDER BY rmc.id DESC";
-            }else if($filterType=='credit'){
-                $selQry="SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.txnType='out' AND rmc.loanId='$loanId' AND rmc.status='success' ORDER BY rmc.id DESC";
-            }else if($filterType=='debit'){
-                $selQry="SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.txnType='in' AND rmc.loanId='$loanId' AND rmc.status='success' ORDER BY rmc.id DESC";
-            }else if($filterType=='due'){
-                $selQry="SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.loanId='$loanId' AND rmc.status='success' AND rmc.txnType='out' AND rmc.openingBalanceLatest != 0 ORDER BY rmc.id DESC";
+            if ($filterType == 'all') {
+                $selQry = "SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.loanId='$loanId' AND rmc.status='success' ORDER BY rmc.id DESC";
+            } else if ($filterType == 'credit') {
+                $selQry = "SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.txnType='out' AND rmc.loanId='$loanId' AND rmc.status='success' ORDER BY rmc.id DESC";
+            } else if ($filterType == 'debit') {
+                $selQry = "SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.txnType='in' AND rmc.loanId='$loanId' AND rmc.status='success' ORDER BY rmc.id DESC";
+            } else if ($filterType == 'due') {
+                $selQry = "SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.loanId='$loanId' AND rmc.status='success' AND rmc.txnType='out' AND rmc.openingBalanceLatest != 0 ORDER BY rmc.id DESC";
             }
 
-        //$loanDetails=DB::select("SELECT rmd.id as debitRecordId,rmd.created_at as debitProcessSysDate,rmd.amount as loanAmount,rmd.transactionDate as openingdate,rmd.status as debitStatus,rmd.transactionId as debitTxnId,rmd.payment_mode as debitPaymentMode,rmd.transactionDate as debitTxnDate,rmc.* FROM raw_materials_txn_details rmd LEFT JOIN raw_materials_txn_details rmc ON rmd.id=rmc.debitRecordId WHERE rmd.txnType='out' AND rmd.loanId='$loanId' $SUBQRY ORDER BY rmd.id ASC");
+            //$loanDetails=DB::select("SELECT rmd.id as debitRecordId,rmd.created_at as debitProcessSysDate,rmd.amount as loanAmount,rmd.transactionDate as openingdate,rmd.status as debitStatus,rmd.transactionId as debitTxnId,rmd.payment_mode as debitPaymentMode,rmd.transactionDate as debitTxnDate,rmc.* FROM raw_materials_txn_details rmd LEFT JOIN raw_materials_txn_details rmc ON rmd.id=rmc.debitRecordId WHERE rmd.txnType='out' AND rmd.loanId='$loanId' $SUBQRY ORDER BY rmd.id ASC");
 
-            $loanDetails_raw=DB::select($selQry);
+            $loanDetails_raw = DB::select($selQry);
             // $loanDetails_raw = DB::select("SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.loanId='$loanId' AND rmc.status='success' ORDER BY rmc.id DESC");
-           
+
             $paymentURL = route('initiateRawMaterialPayment', base64_encode($loanId));
             // dd($loanDetails_raw);
             if (!empty($loanDetails)) {
             ?>
-            <div class="row">
-            <div class="col-md-12 text-right mb-4"><strong>Loan Status : </strong><span class="badge badge-primary" style="font-size: 15px;"> <?=  ucwords(str_replace('-',' ',$loanD->status))  ?></span></div>
-                <div class="col-lg-4">
-                    <div class="loan_card">
-                        <?php if($loanDetails->status == 'customer-approved'){ ?>
-                        <div class="content_headerloan">
-                            <h1>Loan Amount</h1>
-                            <h4>₹<?= $loanDetails->approvedAmount ?></h4>
-                        </div>
-                        <?php }else{ ?>
-                            <div class="content_headerloan">
-                            <h1>Request Loan Amount</h1>
-                            <h4>₹<?= $loanDetails->approvedAmount ?></h4>
-                        </div>
-                            <?php } ?>
-                            <?php if($loanDetails->rateOfInterest) { ?>
-                        <div class="card_number">
-                            <p><strong>Rate of Interest</strong> <span><?= $loanDetails->rateOfInterest ?>%</span></p>
-                        </div>
-                        <?php } ?>
-                        <div class="loan_cdfooter">
-                            <div class="card_holder holder_details">
-                                <h1>Customer Name</h1>
-                                <p><?= $userDtl->name ?></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="amount_limit">
-                        <h5>Limit</h5>
-                        
-                        <?php if($loanDetails->status == 'customer-approved'){ ?>
-                        <div class="progress h-3 bg-slate-150 dark:bg-navy-500">
-                            <div class="w-5/12 rounded-full bg-primary dark:bg-accent"></div>
-                        </div>
-                        <div class="limit_amount">
-                            <p><span id="availableLimit"><?= $availableLimit ?></span><span> / <?= $loanDetails->approvedAmount ?> </span></p>
-                        </div>
-                        <?php }else { ?>
-                            <div class="progress h-3 bg-slate-150 dark:bg-navy-500">
-                                <div class="w-0/12 rounded-full bg-primary dark:bg-accent"></div>
-                            </div>
-                            <div class="limit_amount">
-                            <p>₹<span id="availableLimit">0</span><span> / ₹0 </span></p>
-                        </div>
-                            <?php } ?>
-                    </div>
-
-                </div>
-                <div class="col-lg-8">
-                    <div class="right_lddt">
-                        <div class="credit_debit_details">
-                            <div class="row">
-                                <div class="col-lg-6">
-                                    <div class="debitcard cd_details">
-                                        <h1>Amount Debit</h1>
-                                        <p>₹<?= $totalCredit ?></p>
-                                        <div class="arrow_icon"><img src="https://maxemocapital.co.in/maxemolms/assets/admin/images/uparrow.png" alt=""></div>
-                                    </div>
+                <div class="row">
+                    <div class="col-md-12 text-right mb-4"><strong>Loan Status : </strong><span class="badge badge-primary" style="font-size: 15px;"> <?= ucwords(str_replace('-', ' ', $loanD->status))  ?></span></div>
+                    <div class="col-lg-4">
+                        <div class="loan_card">
+                            <?php if ($loanDetails->status == 'customer-approved') { ?>
+                                <div class="content_headerloan">
+                                    <h1>Loan Amount</h1>
+                                    <h4>₹<?= $loanDetails->approvedAmount ?></h4>
                                 </div>
-                                <div class="col-lg-6">
-                                    <div class="creditcard cd_details">
-                                        <h1>Amount Credit</h1>
-                                        <p>₹<?= $totalDebit ?></p>
-                                        <div class="arrow_icon"><img src="https://maxemocapital.co.in/maxemolms/assets/admin/images/downarrow.png" alt=""></div>
-                                    </div>
+                            <?php } else { ?>
+                                <div class="content_headerloan">
+                                    <h1>Request Loan Amount</h1>
+                                    <h4>₹<?= $loanDetails->approvedAmount ?></h4>
+                                </div>
+                            <?php } ?>
+                            <?php if ($loanDetails->rateOfInterest) { ?>
+                                <div class="card_number">
+                                    <p><strong>Rate of Interest</strong> <span><?= $loanDetails->rateOfInterest ?>%</span></p>
+                                </div>
+                            <?php } ?>
+                            <div class="loan_cdfooter">
+                                <div class="card_holder holder_details">
+                                    <h1>Customer Name</h1>
+                                    <p><?= $userDtl->name ?></p>
                                 </div>
                             </div>
                         </div>
-                        <div class="loanmore_details">
-                            <div class="lm_title">More Information</div>
-                            <div class="lmcard_customerdetails">
-                                <ul>
-                                    <li>
-                                        <h1>Tenure</h1>
-                                        <p><?= $loanDetails->approvedTenureD ?></p>
-                                    </li>
-                                    <?php /* <li>
+
+                        <div class="amount_limit">
+                            <h5>Limit</h5>
+
+                            <?php if ($loanDetails->status == 'customer-approved') { ?>
+                                <div class="progress h-3 bg-slate-150 dark:bg-navy-500">
+                                    <div class="w-5/12 rounded-full bg-primary dark:bg-accent"></div>
+                                </div>
+                                <div class="limit_amount">
+                                    <p><span id="availableLimit"><?= $availableLimit ?></span><span> / <?= $loanDetails->approvedAmount ?> </span></p>
+                                </div>
+                            <?php } else { ?>
+                                <div class="progress h-3 bg-slate-150 dark:bg-navy-500">
+                                    <div class="w-0/12 rounded-full bg-primary dark:bg-accent"></div>
+                                </div>
+                                <div class="limit_amount">
+                                    <p>₹<span id="availableLimit">0</span><span> / ₹0 </span></p>
+                                </div>
+                            <?php } ?>
+                        </div>
+
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="right_lddt">
+                            <div class="credit_debit_details">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <div class="debitcard cd_details">
+                                            <h1>Amount Debit</h1>
+                                            <p>₹<?= $totalCredit ?></p>
+                                            <div class="arrow_icon"><img src="https://maxemocapital.co.in/maxemolms/assets/admin/images/uparrow.png" alt=""></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="creditcard cd_details">
+                                            <h1>Amount Credit</h1>
+                                            <p>₹<?= $totalDebit ?></p>
+                                            <div class="arrow_icon"><img src="https://maxemocapital.co.in/maxemolms/assets/admin/images/downarrow.png" alt=""></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="loanmore_details">
+                                <div class="lm_title">More Information</div>
+                                <div class="lmcard_customerdetails">
+                                    <ul>
+                                        <li>
+                                            <h1>Tenure</h1>
+                                            <p><?= $loanDetails->approvedTenureD ?></p>
+                                        </li>
+                                        <?php /* <li>
                                     <h1>Out Standing Amount</h1>
                                     <p>₹<?= number_format($OutStandingAmount,2) ?></p>
                                 </li> */ ?>
-                                    <li>
-                                        <h1>Valid From</h1>
-                                        <p><?= (strtotime($loanDetails->validFromDate)) ? date('d M, Y', strtotime($loanDetails->validFromDate)) : '' ?></p>
-                                    </li>
-                                    <li>
-                                        <h1>Valid To</h1>
-                                        <p><?= (strtotime($loanDetails->validToDate)) ? date('d M, Y', strtotime($loanDetails->validToDate)) : '' ?></p>
-                                    </li>
-                                    <?php /* <li>
+                                        <li>
+                                            <h1>Valid From</h1>
+                                            <p><?= (strtotime($loanDetails->validFromDate)) ? date('d M, Y', strtotime($loanDetails->validFromDate)) : '' ?></p>
+                                        </li>
+                                        <li>
+                                            <h1>Valid To</h1>
+                                            <p><?= (strtotime($loanDetails->validToDate)) ? date('d M, Y', strtotime($loanDetails->validToDate)) : '' ?></p>
+                                        </li>
+                                        <?php /* <li>
                                      <h1>Invoice</h1>
                                     <a href="<?= asset('/') ?>public/<?= $loanDetails->invoiceFile ?>" target="_blank"><img src="<?= asset('/') ?>public/<?= $loanDetails->invoiceFile ?>" style="width:100px; height: 100px;object-fit: contain;" /></a>
                                     </li> */ ?>
 
-                                </ul>
-                            </div>
-                            <?php if (count($loanDetails_raw) > 0 || $loanD->status == "customer-approved") { ?>
-                                <div class="col-lg-12" id="btnhistory">
-
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                        <?php if (count($loanDetails_raw) > 0) { ?>
-                                            <a type="button" class="btn creditamt_btn" href="<?= $paymentURL ?>">
-                                                <i class="fa-solid fa-money-bill-transfer"></i>
-                                                Credit Amount
-                                            </a>
-                                            <?php } ?>
-                                            <button type="button" class="btn disbursment_btn" onclick="openDisbursementRequestModal('<?= $loanDetails->id ?>');">
-                                                <i class="fa-solid fa-money-bill-transfer"></i>
-                                                Disbursement Request
-                                            </button>
-                                            <?php if (count($loanDetails_raw) > 0) { ?>
-                                            <a type="button" class="btn btn-danger creditamt_btn" href="<?php echo route('adminExportReports',['page'=>'customer-rawmaterial-dataexport']); ?>/?loanId=<?php echo $loanId;?>&filterData=<?php echo $filterType; ?>">
-                                                <i class="fa-solid fa-money-bill-transfer"></i>
-                                                Export Data
-                                            </a>
-                                            <?php } ?>
-                                        </div>
-
-                                    </div>
+                                    </ul>
                                 </div>
-                            <?php } ?>
+                                <?php if (count($loanDetails_raw) > 0 || $loanD->status == "customer-approved") { ?>
+                                    <div class="col-lg-12" id="btnhistory">
+
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <?php if (count($loanDetails_raw) > 0) { ?>
+                                                    <a type="button" class="btn creditamt_btn" href="<?= $paymentURL ?>">
+                                                        <i class="fa-solid fa-money-bill-transfer"></i>
+                                                        Credit Amount
+                                                    </a>
+                                                <?php } ?>
+                                                <button type="button" class="btn disbursment_btn" onclick="openDisbursementRequestModal('<?= $loanDetails->id ?>');">
+                                                    <i class="fa-solid fa-money-bill-transfer"></i>
+                                                    Disbursement Request
+                                                </button>
+                                                <?php if (count($loanDetails_raw) > 0) { ?>
+                                                    <a type="button" class="btn btn-danger creditamt_btn" href="<?php echo route('adminExportReports', ['page' => 'customer-rawmaterial-dataexport']); ?>/?loanId=<?php echo $loanId; ?>&filterData=<?php echo $filterType; ?>">
+                                                        <i class="fa-solid fa-money-bill-transfer"></i>
+                                                        Export Data
+                                                    </a>
+                                                <?php } ?>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                <?php } ?>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="maindetails_cardd table_card">
-                <div class="statement-dropdown">
-                    <h1>Transaction</h1>
-                    <select name="" style="display: none;">
-                        <option value="all">All Statement</option>
-                        <option value="credit" selected>Credit</option>
-                        <option value="debit">Debit</option>
-                        <option value="due">Due</option>
-                    </select>
-                    <div class="nice-select" tabindex="0">
-                        <span class="current"><?php if($filterType == "all") echo 'All Statement'; elseif($filterType == "credit") echo 'Credit' ; elseif($filterType == "debit") echo 'Debit' ; elseif($filterType == "due") echo 'Due' ; ?> </span>
-                        <ul class="list" style="z-index: 1000 !important;">
-                            <li onclick="loanDataShow('all')" data-value="" class="option <?php if($filterType == "all") echo "selected"; ?>">All Statement</li>
-                            <li onclick="loanDataShow('credit')" data-value="" class="option <?php if($filterType == "credit") echo "selected"; ?>">Credit</li>
-                            <li onclick="loanDataShow('debit')" data-value="" class="option <?php if($filterType == "debit") echo "selected"; ?>">Debit</li>
-                            <li onclick="loanDataShow('due')" data-value="" class="option <?php if($filterType == "due") echo "selected"; ?>">Due Summary</li>
-                        </ul>
+                <div class="maindetails_cardd table_card">
+                    <div class="statement-dropdown">
+                        <h1>Transaction</h1>
+                        <select name="" style="display: none;">
+                            <option value="all">All Statement</option>
+                            <option value="credit" selected>Credit</option>
+                            <option value="debit">Debit</option>
+                            <option value="due">Due</option>
+                        </select>
+                        <div class="nice-select" tabindex="0">
+                            <span class="current"><?php if ($filterType == "all") echo 'All Statement';
+                                                    elseif ($filterType == "credit") echo 'Credit';
+                                                    elseif ($filterType == "debit") echo 'Debit';
+                                                    elseif ($filterType == "due") echo 'Due'; ?> </span>
+                            <ul class="list" style="z-index: 1000 !important;">
+                                <li onclick="loanDataShow('all')" data-value="" class="option <?php if ($filterType == "all") echo "selected"; ?>">All Statement</li>
+                                <li onclick="loanDataShow('credit')" data-value="" class="option <?php if ($filterType == "credit") echo "selected"; ?>">Credit</li>
+                                <li onclick="loanDataShow('debit')" data-value="" class="option <?php if ($filterType == "debit") echo "selected"; ?>">Debit</li>
+                                <li onclick="loanDataShow('due')" data-value="" class="option <?php if ($filterType == "due") echo "selected"; ?>">Due Summary</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
 
-                <div class="is-scrollbar-hidden min-w-full overflow-x-auto" x-data="pages.tables.initExample1" style="overflow-x: auto;">
-                    <table class="is-hoverable w-full text-left table-bordered">
-                        
+                    <div class="is-scrollbar-hidden min-w-full overflow-x-auto" x-data="pages.tables.initExample1" style="overflow-x: auto;">
+                        <table class="is-hoverable w-full text-left table-bordered">
+
                             <thead>
-              <tr>
-                <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Sr. No.</th>
-                  <?php  if($filterType=='all')
-                    { ?>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Date</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Closing Date</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Closing Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Withdraw Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Deposit </th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Interest Days</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Total Interest</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">TDS %</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">TDS Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Net Interest</th>                                
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Late Charge</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">No. of days of late charges</th>                                
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Principle Deposit</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Tenure </th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
-                  <?php  }else if($filterType=='credit'){ ?>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Transaction Id</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Payment Mode</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Transaction Date </th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Tenure </th>
-                            
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
-                  <?php  }else if($filterType=='debit'){ ?>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Date</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Closing Date</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Closing Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Deposit </th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Interest Days</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Total Interest</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">TDS %</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">TDS Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Net Interest</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Late Charge</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">No. of days of late charges
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Principle Deposit</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Tenure </th>
-                  <?php  }else if($filterType=='due'){ ?>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Date</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Due Date</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Due Amount</th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
-                            <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
-                  <?php  } ?>
-                  <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Status </th>
-             <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Created Date</th>
-              </tr>
-            </thead>
-                            
-                        <tbody>
-                            <?php
-                            if ($loanDetails_raw) {
+                                <tr>
+                                    <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Sr. No.</th>
+                                    <?php if ($filterType == 'all') { ?>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Date</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Closing Date</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Closing Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Withdraw Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Deposit </th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Interest Days</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Total Interest</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">TDS %</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">TDS Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Net Interest</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Late Charge</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">No. of days of late charges</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Principle Deposit</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Tenure </th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
+                                    <?php  } else if ($filterType == 'credit') { ?>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Transaction Id</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Payment Mode</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Transaction Date </th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Tenure </th>
+
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
+                                    <?php  } else if ($filterType == 'debit') { ?>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Date</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Closing Date</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Closing Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Deposit </th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Interest Days</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Total Interest</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">TDS %</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">TDS Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Net Interest</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Late Charge</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">No. of days of late charges
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Principle Deposit</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Tenure </th>
+                                    <?php  } else if ($filterType == 'due') { ?>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Opening Date</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Due Date</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Due Amount</th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Invoice No. </th>
+                                        <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">UTR Form </th>
+                                    <?php  } ?>
+                                    <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Status </th>
+                                    <th class="whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5">Created Date</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <?php
+                                if ($loanDetails_raw) {
 
 
-                                if (count($loanDetails_raw) > 0) {
-                                    $lsr = 1;
-                                    foreach ($loanDetails_raw as $kk => $lrow) {
-                                        $applyDate = (strtotime($lrow->created_at)) ? date('d M, Y', strtotime($lrow->created_at)) : '';
+                                    if (count($loanDetails_raw) > 0) {
+                                        $lsr = 1;
+                                        foreach ($loanDetails_raw as $kk => $lrow) {
+                                            $applyDate = (strtotime($lrow->created_at)) ? date('d M, Y', strtotime($lrow->created_at)) : '';
 
 
-                                        $transactionDate = (strtotime($lrow->transactionDate)) ? date('d M, Y', strtotime($lrow->transactionDate)) : '';
+                                            $transactionDate = (strtotime($lrow->transactionDate)) ? date('d M, Y', strtotime($lrow->transactionDate)) : '';
 
-                                        $openingdate = (strtotime($lrow->openingDate)) ? date('d M, Y', strtotime($lrow->openingDate)) : '';
+                                            $openingdate = (strtotime($lrow->openingDate)) ? date('d M, Y', strtotime($lrow->openingDate)) : '';
 
-                                        $closingDate = $transactionDate;
+                                            $closingDate = $transactionDate;
 
-                                        $debitTxnDate = $transactionDate;
+                                            $debitTxnDate = $transactionDate;
 
-                                        // $statusText=strtoupper($lrow->status);
-                                        $debitStatus = strtoupper($lrow->status);
-                                        // $txnType=strtoupper($lrow->txnType);
-                                        // if($txnType=='IN'){
-                                        //     $txnType='Credit';
-                                        // }else if($txnType=='OUT'){
-                                        //     $txnType='Debit';
-                                        // }
-                                        $tenureDueDate=(strtotime($lrow->tenureDueDate)) ? date('d M, Y',strtotime($lrow->tenureDueDate)) : '';
-                                        $buttons = '';
-                                        $loanStatus = strtoupper($lrow->status);
-                                        $totalDepositAmount = $lrow->totalAmount + $lrow->lateCharges;
-                            ?>
-                                        <tr role="row" class="odd">
-                                            <td class="sorting_1"><?= ($kk + 1) ?></td>
-   
-                                            <?php if ($filterType == 'all') {
-                                                if ($lrow->txnType == 'in') { ?>
-                                                    <td><?= $openingdate ?></td>
-                                                    <td><?= number_format($lrow->openingBalance, 2) ?></td>
-                                                    <td><?= $closingDate ?></td>
-                                                    <td><?= number_format($lrow->outstandingBalance, 2) ?></td>
-                                                    <td></td>
-                                                    <td><?= number_format($lrow->totalAmount + $lrow->lateCharges, 2) ?></td>
-                                                    <td><?= $lrow->numOfDays ?></td>
-                                                    <td><?= number_format($lrow->interestAmount, 2) ?></td>
-                                                    <td><?= number_format($lrow->tdsPercent, 2) ?></td>
-                                                    <td><?= number_format($lrow->tdsAmount, 2) ?></td>
-                                                    <td><?= number_format($lrow->interestAmountPayble, 2) ?></td>
-                                                    <td><?= number_format($lrow->lateCharges, 2) ?></td>
-                                                    <td><?= $lrow->numOfDaysOfFine ?></td>
+                                            // $statusText=strtoupper($lrow->status);
+                                            $debitStatus = strtoupper($lrow->status);
+                                            // $txnType=strtoupper($lrow->txnType);
+                                            // if($txnType=='IN'){
+                                            //     $txnType='Credit';
+                                            // }else if($txnType=='OUT'){
+                                            //     $txnType='Debit';
+                                            // }
+                                            $tenureDueDate = (strtotime($lrow->tenureDueDate)) ? date('d M, Y', strtotime($lrow->tenureDueDate)) : '';
+                                            $buttons = '';
+                                            $loanStatus = strtoupper($lrow->status);
+                                            $totalDepositAmount = $lrow->totalAmount + $lrow->lateCharges;
+                                ?>
+                                            <tr role="row" class="odd">
+                                                <td class="sorting_1"><?= ($kk + 1) ?></td>
+
+                                                <?php if ($filterType == 'all') {
+                                                    if ($lrow->txnType == 'in') { ?>
+                                                        <td><?= $openingdate ?></td>
+                                                        <td><?= number_format($lrow->openingBalance, 2) ?></td>
+                                                        <td><?= $closingDate ?></td>
+                                                        <td><?= number_format($lrow->outstandingBalance, 2) ?></td>
+                                                        <td></td>
+                                                        <td><?= number_format($lrow->totalAmount + $lrow->lateCharges, 2) ?></td>
+                                                        <td><?= $lrow->numOfDays ?></td>
+                                                        <td><?= number_format($lrow->interestAmount, 2) ?></td>
+                                                        <td><?= number_format($lrow->tdsPercent, 2) ?></td>
+                                                        <td><?= number_format($lrow->tdsAmount, 2) ?></td>
+                                                        <td><?= number_format($lrow->interestAmountPayble, 2) ?></td>
+                                                        <td><?= number_format($lrow->lateCharges, 2) ?></td>
+                                                        <td><?= $lrow->numOfDaysOfFine ?></td>
+                                                        <td><?= number_format($lrow->amount, 2) ?></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td><?= $debitStatus ?></td>
+                                                    <?php  } else { ?>
+                                                        <td><?= $openingdate ?></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td><?= number_format($lrow->amount, 2) ?></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td><?= $lrow->tenureName ?></td>
+                                                        <?php $invNumber = ($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
+                                                        if ($invNumber) { ?>
+                                                            <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
+                                                        <?php } else { ?>
+                                                            <td></td>
+                                                        <?php  } ?>
+                                                        <?php $utrName = ($lrow->utr_name) ? $lrow->utr_name : '';
+                                                        if ($utrName) { ?>
+                                                            <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $utrName ?></a></td>
+                                                        <?php } else { ?>
+                                                            <td></td>
+                                                        <?php  } ?>
+                                                        <td><?= $debitStatus ?></td>
+                                                    <?php  }
+                                                } else if ($filterType == 'credit') { ?>
+
                                                     <td><?= number_format($lrow->amount, 2) ?></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td><?= $debitStatus ?></td>
-                                                <?php  } else { ?>
-                                                    <td><?= $openingdate ?></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td><?= number_format($lrow->amount, 2) ?></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td></td>
-                                                    <td></td>
+                                                    <td><?= $lrow->transactionId ?></td>
+                                                    <td><?= strtoupper($lrow->payment_mode) ?></td>
+                                                    <td><?= $transactionDate ?></td>
                                                     <td><?= $lrow->tenureName ?></td>
                                                     <?php $invNumber = ($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
                                                     if ($invNumber) { ?>
@@ -845,76 +875,55 @@ public function careerForm(Request $request){
                                                         <td></td>
                                                     <?php  } ?>
                                                     <td><?= $debitStatus ?></td>
-                                                <?php  }
-                                            } else if ($filterType == 'credit') { ?>
+                                                <?php } else if ($filterType == 'debit') { ?>
+                                                    <td><?= $openingdate ?></td>
+                                                    <td><?= number_format($lrow->openingBalance, 2) ?></td>
+                                                    <td><?= $closingDate ?></td>
+                                                    <td><?= number_format($lrow->outstandingBalance, 2) ?></td>
+                                                    <td><?= number_format($lrow->totalAmount + $lrow->lateCharges, 2) ?></td>
+                                                    <td><?= $lrow->numOfDays ?></td>
+                                                    <td><?= number_format($lrow->interestAmount, 2) ?></td>
+                                                    <td><?= number_format($lrow->tdsPercent, 2) ?></td>
+                                                    <td><?= number_format($lrow->tdsAmount, 2) ?></td>
+                                                    <td><?= number_format($lrow->interestAmountPayble, 2) ?></td>
+                                                    <td><?= number_format($lrow->lateCharges, 2) ?></td>
+                                                    <td><?= $lrow->numOfDaysOfFine ?></td>
+                                                    <td><?= number_format($lrow->amount, 2) ?></td>
+                                                    <td><?= $lrow->tenureName ?></td>
+                                                    <td><?= $debitStatus ?></td>
 
-                                                <td><?= number_format($lrow->amount, 2) ?></td>
-                                                <td><?= $lrow->transactionId ?></td>
-                                                <td><?= strtoupper($lrow->payment_mode) ?></td>
-                                                <td><?= $transactionDate ?></td>
-                                                <td><?= $lrow->tenureName ?></td>
-                                                <?php $invNumber = ($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
-                                                if ($invNumber) { ?>
-                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
-                                                <?php } else { ?>
-                                                    <td></td>
-                                                <?php  } ?>
-                                                <?php $utrName = ($lrow->utr_name) ? $lrow->utr_name : '';
-                                                if ($utrName) { ?>
-                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $utrName ?></a></td>
-                                                <?php } else { ?>
-                                                    <td></td>
-                                                <?php  } ?>
-                                                <td><?= $debitStatus ?></td>
-                                            <?php } else if ($filterType == 'debit') { ?>
-                                                <td><?= $openingdate ?></td>
-                                                <td><?= number_format($lrow->openingBalance, 2) ?></td>
-                                                <td><?= $closingDate ?></td>
-                                                <td><?= number_format($lrow->outstandingBalance, 2) ?></td>
-                                                <td><?= number_format($lrow->totalAmount + $lrow->lateCharges, 2) ?></td>
-                                                <td><?= $lrow->numOfDays ?></td>
-                                                <td><?= number_format($lrow->interestAmount, 2) ?></td>
-                                                <td><?= number_format($lrow->tdsPercent, 2) ?></td>
-                                                <td><?= number_format($lrow->tdsAmount, 2) ?></td>
-                                                <td><?= number_format($lrow->interestAmountPayble, 2) ?></td>
-                                                <td><?= number_format($lrow->lateCharges, 2) ?></td>
-                                                <td><?= $lrow->numOfDaysOfFine ?></td>
-                                                <td><?= number_format($lrow->amount, 2) ?></td>
-                                                <td><?= $lrow->tenureName ?></td>
-                                                <td><?= $debitStatus ?></td>
-
-                                            <?php }else if($filterType == 'due'){ ?>
-                                                <td><?= number_format($lrow->amount,2) ?></td>
-                                                <td><?= $openingdate ?></td>
-                                                <td><?= $tenureDueDate ?></td>
-                                                <td><?= number_format($lrow->openingBalanceLatest,2) ?></td>
-                                                <?php $invNumber = ($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
-                                                if ($invNumber) { ?>
-                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
-                                                <?php } else { ?>
-                                                    <td></td>
-                                                <?php  } ?>
-                                                <?php $utrName = ($lrow->utr_name) ? $lrow->utr_name : '';
-                                                if ($utrName) { ?>
-                                                    <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $utrName ?></a></td>
-                                                <?php } else { ?>
-                                                    <td></td>
-                                                <?php  } ?>
-                                                <td><?= $debitStatus ?></td>
-                                            <?php } ?>
-                                            <td><?= $applyDate ?></td>
+                                                <?php } else if ($filterType == 'due') { ?>
+                                                    <td><?= number_format($lrow->amount, 2) ?></td>
+                                                    <td><?= $openingdate ?></td>
+                                                    <td><?= $tenureDueDate ?></td>
+                                                    <td><?= number_format($lrow->openingBalanceLatest, 2) ?></td>
+                                                    <?php $invNumber = ($lrow->invoiceNumber) ? $lrow->invoiceNumber : '';
+                                                    if ($invNumber) { ?>
+                                                        <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $invNumber ?></a></td>
+                                                    <?php } else { ?>
+                                                        <td></td>
+                                                    <?php  } ?>
+                                                    <?php $utrName = ($lrow->utr_name) ? $lrow->utr_name : '';
+                                                    if ($utrName) { ?>
+                                                        <td><a href="javascript:;" style="color:blue;" data-invoiceNumber="<?= $lrow->invoiceNumber ?>" data-invoiceFile="<?= $lrow->invoiceFile ?>" data-drawDownFormFile="<?= $lrow->drawDownFormFile ?>" data-utrName="<?= $lrow->utr_name ?>" data-utrFile="<?= $lrow->utr_file ?>" id="rawFile<?= $lrow->id ?>" onclick="openInvFiles(<?= $lrow->id ?>);"><?= $utrName ?></a></td>
+                                                    <?php } else { ?>
+                                                        <td></td>
+                                                    <?php  } ?>
+                                                    <td><?= $debitStatus ?></td>
+                                                <?php } ?>
+                                                <td><?= $applyDate ?></td>
 
 
 
-                                        </tr>
-                            <?php
+                                            </tr>
+                                <?php
+                                        }
                                     }
-                                }
-                            } ?>
-                        </tbody>
-                    </table>
+                                } ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
 
         <?php  }
         }
@@ -924,9 +933,9 @@ public function careerForm(Request $request){
     {
         $requestType = $request->requestType;
         $userloggedData = $this->isUserLoggedIn();
-        if(isset($request->userId) && $request->userId) {
+        if (isset($request->userId) && $request->userId) {
             $userId = $request->userId;
-        }else{
+        } else {
             $userId = $userloggedData->id;
         }
 
@@ -941,14 +950,14 @@ public function careerForm(Request $request){
 
     public function getUserDashboardApplicationHtml($userId)
     {
-        if($userId){
+        if ($userId) {
             $userloggedData = User::whereId($userId)->first();
             $companyData = DB::table('employment_histories')->where(['userId' => $userId, 'status' => 'approved', 'companyType' => 'Pvt. Ltd.'])->first();
             $creditData = null;
             if ($userloggedData->creditscore_apidata) {
                 $creditData = json_decode($userloggedData->creditscore_apidata, true);
             }
-        }else{
+        } else {
             $userloggedData = $this->isUserLoggedIn();
         }
         $userId = $userloggedData->id;
@@ -1143,9 +1152,9 @@ public function careerForm(Request $request){
                             </div>
                         </div>
 
-                        
+
                     </div>
-                    
+
                 </div>
             </form>
         </div>
@@ -1155,7 +1164,7 @@ public function careerForm(Request $request){
             </div>
             <div class="cscard__bodystart">
                 <div class="row">
-                    <?php if(isset($creditData)) {  ?>
+                    <?php if (isset($creditData)) {  ?>
                         <div class="col-lg-12">
                             <div class="card" id="orderList_header">
                                 <div class="card-header  border-0">
@@ -1167,17 +1176,17 @@ public function careerForm(Request $request){
                                             <!-- <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                                             <a href="javascript:void(0);"><button type="button" class="btn btn-primary">Print</button></a> -->
                                             <?php if ($userloggedData->credit_score) { ?> <a href="<?= route('equifaxReport', ['user_id' => $userId]) ?>?type=user"><button type="button" class="btn btn-primary btn-sm">View Report</button></a> <?php } ?>
-                                            
+
                                         </div>
                                     </div>
-                                    
+
                                 </div>
 
                             </div>
 
                         </div>
-                        <?php if($userDocDtlKyc) {  
-                            foreach($userDocDtlKyc as $kk=>$ukyc){ 
+                        <?php if ($userDocDtlKyc) {
+                            foreach ($userDocDtlKyc as $kk => $ukyc) {
                                 $creditData = null;
                                 if ($ukyc->creditscore_apidata) {
                                     $creditData = json_decode($ukyc->creditscore_apidata, true);
@@ -1185,55 +1194,57 @@ public function careerForm(Request $request){
                                 <div class="col-lg-12">
                                     <div class="card" id="orderList_header">
                                         <div class="card-header  border-0">
-                                        <div class="my-2 d-flex align-items-center">
-                                        <h5 class="card-title mb-0 flex-grow-1" style="width: 30%;">Customer Partner <?= $kk+1 ?> Credit Score : <?= $ukyc->credit_score; ?></h5>
-                                        <div class="flex-shrink-0" style="text-align: right;width: 70%;">
-                                            <?php if ($ukyc->credit_score) { ?> <a href="<?= route('equifaxReport', ['user_id' => $ukyc->id]) ?>?type=partner"><button type="button" class="btn btn-primary btn-sm">View Partner <?= $kk+1 ?> Report </button></a> <?php } ?>
-                                            <?php if ((!$creditData) || isset($creditData['Error'])) { ?> <a class="btn btn-primary btn-sm" href="<?= route('equifaxReport', ['user_id' => $ukyc->id]) ?>?loadreport=3&type=partner">Load Partner <?= $kk+1 ?> Report</a> <?php } elseif ($creditData && isset($creditData['CCRResponse']['CIRReportDataLst'][0]['Error'])) { ?> <span class="text-dark">Response : </span> <?= $creditData['CCRResponse']['CIRReportDataLst'][0]['Error']['ErrorDesc'] ?> <?php } ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php  }  } ?>
-                        <?php if ($companyData && $companyData->employerName) {
-                            $companyCreditData = null;
-                            if ($companyData->company_creditscore_apidata) {
-                                $companyCreditData = json_decode($companyData->company_creditscore_apidata, true);
-                            }
-                        ?>
-                            <div class="col-lg-12">
-                                <div class="card" id="orderList_header">
-                                    <div class="card-header  border-0">
-                                        <div class="d-flex align-items-center">
-                                            <h5 class="card-title mb-0 flex-grow-1"  style="width: 30%;">Company Credit Score : <?= $companyData->company_credit_score; ?></h5>
-                                            <div class="flex-shrink-0" style="text-align: right;width: 70%;">
-                                                <?php if ((!$companyCreditData && $userloggedData->viewKycDetails) || isset($companyCreditData['Error'])) { ?> <a class="btn btn-primary btn-sm" href="<?= route('equifaxReport', ['user_id' => $userId]) ?>?loadreport=2">Load Report</a> <?php } elseif ($companyCreditData && isset($companyCreditData['CCRResponse']['CIRReportDataLst'][0]['Error'])) { ?> <span class="text-dark">Response : </span> <?= $companyCreditData['CCRResponse']['CIRReportDataLst'][0]['Error']['ErrorDesc'] ?> <?php } ?>
-                                                <!-- <a href="{{ route('') }}" class="btn btn-secondary" >Close</a> -->
-                                                <!-- <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                            <a href="javascript:void(0);"><button type="button" class="btn btn-primary">Print</button></a> -->
-                                                <?php if ($companyData->company_credit_score) { ?> <a href="<?= route('equifaxReport', ['user_id' => $userId]) ?>?type=company"><button type="button" class="btn btn-primary btn-sm">View Report</button></a> <?php } ?>
-
+                                            <div class="my-2 d-flex align-items-center">
+                                                <h5 class="card-title mb-0 flex-grow-1" style="width: 30%;">Customer Partner <?= $kk + 1 ?> Credit Score : <?= $ukyc->credit_score; ?></h5>
+                                                <div class="flex-shrink-0" style="text-align: right;width: 70%;">
+                                                    <?php if ($ukyc->credit_score) { ?> <a href="<?= route('equifaxReport', ['user_id' => $ukyc->id]) ?>?type=partner"><button type="button" class="btn btn-primary btn-sm">View Partner <?= $kk + 1 ?> Report </button></a> <?php } ?>
+                                                    <?php if ((!$creditData) || isset($creditData['Error'])) { ?> <a class="btn btn-primary btn-sm" href="<?= route('equifaxReport', ['user_id' => $ukyc->id]) ?>?loadreport=3&type=partner">Load Partner <?= $kk + 1 ?> Report</a> <?php } elseif ($creditData && isset($creditData['CCRResponse']['CIRReportDataLst'][0]['Error'])) { ?> <span class="text-dark">Response : </span> <?= $creditData['CCRResponse']['CIRReportDataLst'][0]['Error']['ErrorDesc'] ?> <?php } ?>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                            <?php  }
+                        } ?>
+                            <?php if ($companyData && $companyData->employerName) {
+                                $companyCreditData = null;
+                                if ($companyData->company_creditscore_apidata) {
+                                    $companyCreditData = json_decode($companyData->company_creditscore_apidata, true);
+                                }
+                            ?>
+                                <div class="col-lg-12">
+                                    <div class="card" id="orderList_header">
+                                        <div class="card-header  border-0">
+                                            <div class="d-flex align-items-center">
+                                                <h5 class="card-title mb-0 flex-grow-1" style="width: 30%;">Company Credit Score : <?= $companyData->company_credit_score; ?></h5>
+                                                <div class="flex-shrink-0" style="text-align: right;width: 70%;">
+                                                    <?php if ((!$companyCreditData && $userloggedData->viewKycDetails) || isset($companyCreditData['Error'])) { ?> <a class="btn btn-primary btn-sm" href="<?= route('equifaxReport', ['user_id' => $userId]) ?>?loadreport=2">Load Report</a> <?php } elseif ($companyCreditData && isset($companyCreditData['CCRResponse']['CIRReportDataLst'][0]['Error'])) { ?> <span class="text-dark">Response : </span> <?= $companyCreditData['CCRResponse']['CIRReportDataLst'][0]['Error']['ErrorDesc'] ?> <?php } ?>
+                                                    <!-- <a href="{{ route('') }}" class="btn btn-secondary" >Close</a> -->
+                                                    <!-- <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                            <a href="javascript:void(0);"><button type="button" class="btn btn-primary">Print</button></a> -->
+                                                    <?php if ($companyData->company_credit_score) { ?> <a href="<?= route('equifaxReport', ['user_id' => $userId]) ?>?type=company"><button type="button" class="btn btn-primary btn-sm">View Report</button></a> <?php } ?>
+
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
 
                                 </div>
-
-                            </div>
-                        <?php } }else{ ?>
+                            <?php }
+                        } else { ?>
                             No Report Found
                         <?php } ?>
+                                </div>
                 </div>
-            </div>
         </form>
         <div class="maindetails_cardd">
-        <?php if (count($coApplicantDtlARR)) { ?>
-            <form action="">
-                <div class="header__cstitle">
-                    <h1>Guarantor Info</h1>
-                </div>
-                <div class="cscard__bodystart">
-                    
+            <?php if (count($coApplicantDtlARR)) { ?>
+                <form action="">
+                    <div class="header__cstitle">
+                        <h1>Guarantor Info</h1>
+                    </div>
+                    <div class="cscard__bodystart">
+
                         <?php foreach ($coApplicantDtlARR as $coApplicantDtl) { ?>
                             <div class="row">
                                 <div class="col-lg-3">
@@ -1328,26 +1339,26 @@ public function careerForm(Request $request){
                                     </div>
                                 </div>
                             </div>
-                    <?php }
-                     ?>
-                </div>
-            </form>
+                        <?php }
+                        ?>
+                    </div>
+                </form>
             <?php } ?>
         </div>
         <div class="maindetails_cardd">
-        <?php if (count($userEmploymentHistoryArr)) { ?>
-            <form action="">
-                <div class="header__cstitle">
-                    <h1>Business/Company Details</h1>
-                    <!-- <a href="##"  class="btngreenasuccess"> <button type="button" class="commonbntstyle"> <i class="fa-solid fa-plus"></i> Add New Co-Applicant</button></a> -->
-                </div>
-                <div class="cscard__bodystart">
-                    
+            <?php if (count($userEmploymentHistoryArr)) { ?>
+                <form action="">
+                    <div class="header__cstitle">
+                        <h1>Business/Company Details</h1>
+                        <!-- <a href="##"  class="btngreenasuccess"> <button type="button" class="commonbntstyle"> <i class="fa-solid fa-plus"></i> Add New Co-Applicant</button></a> -->
+                    </div>
+                    <div class="cscard__bodystart">
+
                         <?php foreach ($userEmploymentHistoryArr as $userEmploymentHistory) { ?>
                             <div class="row">
-                            <div class="col-lg-12" style="text-align: center;background: #455298 !important;color: #fff;padding: 10px;margin-bottom: 6px;border-radius: 10px;">
-                                <?=($userEmploymentHistory->isBusiness==1) ? 'Business Details' : 'Company Details'?>
-                            </div>
+                                <div class="col-lg-12" style="text-align: center;background: #455298 !important;color: #fff;padding: 10px;margin-bottom: 6px;border-radius: 10px;">
+                                    <?= ($userEmploymentHistory->isBusiness == 1) ? 'Business Details' : 'Company Details' ?>
+                                </div>
                                 <div class="col-lg-3">
                                     <div class="row">
                                         <div class="col-lg-12 mr_removecol">
@@ -1471,9 +1482,9 @@ public function careerForm(Request $request){
                                     </div>
                                 </div>
                             </div>
-                    <?php } ?>
-                </div>
-            </form>
+                        <?php } ?>
+                    </div>
+                </form>
             <?php } ?>
         </div>
         <div class="maindetails_cardd">
@@ -1510,9 +1521,9 @@ public function careerForm(Request $request){
                                         </div>
                                     </div>
                                 </div>
-                                
+
                             </div>
-                                <div class="col-lg-4">
+                            <div class="col-lg-4">
                                 <div class="row">
                                     <div class="col-lg-12 mr_removecol">
                                         <div class="form-group ">
@@ -1537,11 +1548,11 @@ public function careerForm(Request $request){
                                         </div>
                                     </div>
                                 </div>
-                                
-                                
+
+
                             </div>
                             <div class="col-lg-4">
-                            <div class="row">
+                                <div class="row">
                                     <div class="col-lg-12 mr_removecol">
                                         <div class="form-group ">
                                             <label for=""> City: </label>
@@ -1580,39 +1591,39 @@ public function careerForm(Request $request){
                     </div>
                     <div class="cscard__bodystart">
                         <div class="row gallery-wrappernew">
-                        <?php if($userDocDtl->idProofFront || $userDocDtl->idProofBack){ ?>
-                            <div class="col-lg-6">
-                                <div class="col-lg-12">
-                                    <div class="document_title_new">Photo of Emp identity Card</div>
-                                </div>
-                                
-                                <div class="row">
-                                    <?php if($userDocDtl->idProofFront){ ?>
-                                    <div class="col-lg-6">
-                                        <div class="card documents__cardsitems">
-                                            <div class="document__imgg">
-                                                <img src="<?= (!empty($userDocDtl)) ? env('APP_URL') . 'public/' . $userDocDtl->idProofFront : '' ?>" class="card-img-top" alt="...">
-                                            </div>
-                                            <div class="card-body">
-                                                <h1 class="card-title">Front</h1>
-                                            </div>
-                                        </div>
+                            <?php if ($userDocDtl->idProofFront || $userDocDtl->idProofBack) { ?>
+                                <div class="col-lg-6">
+                                    <div class="col-lg-12">
+                                        <div class="document_title_new">Photo of Emp identity Card</div>
                                     </div>
-                                    <?php } ?>
-                                    <?php if($userDocDtl->idProofBack){ ?>
-                                    <div class="col-lg-6">
-                                        <div class="card documents__cardsitems">
-                                            <div class="document__imgg">
-                                                <img src="<?= (!empty($userDocDtl)) ? env('APP_URL') . 'public/' . $userDocDtl->idProofBack : '' ?>" class="card-img-top" alt="...">
+
+                                    <div class="row">
+                                        <?php if ($userDocDtl->idProofFront) { ?>
+                                            <div class="col-lg-6">
+                                                <div class="card documents__cardsitems">
+                                                    <div class="document__imgg">
+                                                        <img src="<?= (!empty($userDocDtl)) ? env('APP_URL') . 'public/' . $userDocDtl->idProofFront : '' ?>" class="card-img-top" alt="...">
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <h1 class="card-title">Front</h1>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="card-body">
-                                                <h1 class="card-title">Back</h1>
+                                        <?php } ?>
+                                        <?php if ($userDocDtl->idProofBack) { ?>
+                                            <div class="col-lg-6">
+                                                <div class="card documents__cardsitems">
+                                                    <div class="document__imgg">
+                                                        <img src="<?= (!empty($userDocDtl)) ? env('APP_URL') . 'public/' . $userDocDtl->idProofBack : '' ?>" class="card-img-top" alt="...">
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <h1 class="card-title">Back</h1>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        <?php } ?>
                                     </div>
-                                    <?php } ?>
                                 </div>
-                            </div>
                             <?php } ?>
                             <div class="col-lg-6">
                                 <div class="col-lg-12">
@@ -1641,9 +1652,9 @@ public function careerForm(Request $request){
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-3 <?php if($userDocDtl->idProofFront && $userDocDtl->idProofBack){ ?> mt-4 <?php } ?>">
+                            <div class="col-lg-3 <?php if ($userDocDtl->idProofFront && $userDocDtl->idProofBack) { ?> mt-4 <?php } ?>">
                                 <div class="col-lg-12">
-                                    <div class="document_title_new <?php if($userDocDtl->idProofFront && $userDocDtl->idProofBack){ ?> mt-4 <?php } ?>">Photo of Pan Card</div>
+                                    <div class="document_title_new <?php if ($userDocDtl->idProofFront && $userDocDtl->idProofBack) { ?> mt-4 <?php } ?>">Photo of Pan Card</div>
                                 </div>
                                 <div class="row">
                                     <div class="col-lg-12">
@@ -1658,9 +1669,9 @@ public function careerForm(Request $request){
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-3 <?php if($userDocDtl->idProofFront && $userDocDtl->idProofBack){ ?> mt-4 <?php } ?>">
+                            <div class="col-lg-3 <?php if ($userDocDtl->idProofFront && $userDocDtl->idProofBack) { ?> mt-4 <?php } ?>">
                                 <div class="col-lg-12">
-                                    <div class="document_title_new <?php if($userDocDtl->idProofFront && $userDocDtl->idProofBack){ ?> mt-4 <?php } ?>">Photo/PDF of Bank Statement</div>
+                                    <div class="document_title_new <?php if ($userDocDtl->idProofFront && $userDocDtl->idProofBack) { ?> mt-4 <?php } ?>">Photo/PDF of Bank Statement</div>
                                 </div>
                                 <?php
                                 $bankdoc = '';
@@ -1730,87 +1741,87 @@ public function careerForm(Request $request){
                                 <!-- end col -->
                             </div>
                         </div>
-                        <?php  if($userDocDtlKyc){ ?>
-                        <div class="row gallery-wrapper mt-4">
-                            
-                            <div class="col-lg-6">
-                            <?php if(isset($userDocDtlKyc[0])){ ?>
-                                <div class="col-lg-12">
-                                    <div class="document_title_type">Partner 1 Pancard</div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="element-item   col-12">
-                                        <div class="gallery-box card">
-                                            <div class="gallery-container">
-                                                <a class="image-popup" title="" target="_blank" href="<?= (!empty($userDocDtlKyc[0])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[0]->pancard_img : '' ?>">
-                                                    <img class="gallery-img img-fluid mx-auto" style="width: 211px;" src="<?= (!empty($userDocDtlKyc[0])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[0]->pancard_img : '' ?>" alt="">
-                                                    <div class="gallery-overlay">
-                                                        <h5 class="overlay-caption"></h5>
+                        <?php if ($userDocDtlKyc) { ?>
+                            <div class="row gallery-wrapper mt-4">
+
+                                <div class="col-lg-6">
+                                    <?php if (isset($userDocDtlKyc[0])) { ?>
+                                        <div class="col-lg-12">
+                                            <div class="document_title_type">Partner 1 Pancard</div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="element-item   col-12">
+                                                <div class="gallery-box card">
+                                                    <div class="gallery-container">
+                                                        <a class="image-popup" title="" target="_blank" href="<?= (!empty($userDocDtlKyc[0])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[0]->pancard_img : '' ?>">
+                                                            <img class="gallery-img img-fluid mx-auto" style="width: 211px;" src="<?= (!empty($userDocDtlKyc[0])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[0]->pancard_img : '' ?>" alt="">
+                                                            <div class="gallery-overlay">
+                                                                <h5 class="overlay-caption"></h5>
+                                                            </div>
+                                                        </a>
                                                     </div>
-                                                </a>
-                                            </div>
-                                            <div class="box-content">
-                                                <div class="d-flex align-items-center mt-1">
-                                                    <div class="flex-grow-1 text-muted">
-                                                        <a href="<?= (!empty($userDocDtlKyc[0])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[0]->pancard_img : '' ?>" target="_blank" class="text-body text-truncate">Image</a> :
-                                                        <button type="button" class="btn btn-sm fs-12 btn-link text-body text-decoration-none px-0 shadow-none">
-                                                            <i class=" ri-calendar-2-line  text-muted align-bottom me-1"></i> <?= (strtotime($userDocDtlKyc[0]->created_at)) ? date('M Y', strtotime($userDocDtlKyc[0]->created_at)) : 'NA' ?>
-                                                        </button>
+                                                    <div class="box-content">
+                                                        <div class="d-flex align-items-center mt-1">
+                                                            <div class="flex-grow-1 text-muted">
+                                                                <a href="<?= (!empty($userDocDtlKyc[0])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[0]->pancard_img : '' ?>" target="_blank" class="text-body text-truncate">Image</a> :
+                                                                <button type="button" class="btn btn-sm fs-12 btn-link text-body text-decoration-none px-0 shadow-none">
+                                                                    <i class=" ri-calendar-2-line  text-muted align-bottom me-1"></i> <?= (strtotime($userDocDtlKyc[0]->created_at)) ? date('M Y', strtotime($userDocDtlKyc[0]->created_at)) : 'NA' ?>
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    <?php }  ?>
                                 </div>
-                                <?php }  ?>
-                            </div>
-                           
-                            <div class="col-lg-6">
-                            <?php if(isset($userDocDtlKyc[1])){ ?>
-                                <div class="col-lg-12">
-                                    <div class="document_title_type">Partner 2 Pancard</div>
-                                </div>
-                                <div class="row">
-                                    <div class="element-item  col-lg-6 col-sm-6">
-                                        <div class="gallery-box card">
-                                            <div class="gallery-container">
-                                                <a class="image-popup" title="" target="_blank" href="<?= (!empty($userDocDtlKyc[1])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[1]->pancard_img : '' ?>">
-                                                    <img class="gallery-img img-fluid mx-auto" style="width: 211px;" src="<?= (!empty($userDocDtlKyc[1])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[1]->pancard_img : '' ?>" alt="">
-                                                    <div class="gallery-overlay">
-                                                        <h5 class="overlay-caption"></h5>
+
+                                <div class="col-lg-6">
+                                    <?php if (isset($userDocDtlKyc[1])) { ?>
+                                        <div class="col-lg-12">
+                                            <div class="document_title_type">Partner 2 Pancard</div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="element-item  col-lg-6 col-sm-6">
+                                                <div class="gallery-box card">
+                                                    <div class="gallery-container">
+                                                        <a class="image-popup" title="" target="_blank" href="<?= (!empty($userDocDtlKyc[1])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[1]->pancard_img : '' ?>">
+                                                            <img class="gallery-img img-fluid mx-auto" style="width: 211px;" src="<?= (!empty($userDocDtlKyc[1])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[1]->pancard_img : '' ?>" alt="">
+                                                            <div class="gallery-overlay">
+                                                                <h5 class="overlay-caption"></h5>
+                                                            </div>
+                                                        </a>
                                                     </div>
-                                                </a>
-                                            </div>
-                                            <div class="box-content">
-                                                <div class="d-flex align-items-center mt-1">
-                                                    <div class="flex-grow-1 text-muted">
-                                                        <a href="<?= (!empty($userDocDtlKyc[1])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[1]->pancard_img : '' ?>" target="_blank" class="text-body text-truncate">Front</a> :
-                                                        <button type="button" class="btn btn-sm fs-12 btn-link text-body text-decoration-none px-0 shadow-none">
-                                                            <i class=" ri-calendar-2-line  text-muted align-bottom me-1"></i> <?= (strtotime($userDocDtlKyc[1]->created_at)) ? date('M Y', strtotime($userDocDtlKyc[1]->created_at)) : 'NA' ?>
-                                                        </button>
-                                                    </div>
-                                                    <!-- <div class="flex-shrink-0">
+                                                    <div class="box-content">
+                                                        <div class="d-flex align-items-center mt-1">
+                                                            <div class="flex-grow-1 text-muted">
+                                                                <a href="<?= (!empty($userDocDtlKyc[1])) ? env('APP_URL') . 'public/' . $userDocDtlKyc[1]->pancard_img : '' ?>" target="_blank" class="text-body text-truncate">Front</a> :
+                                                                <button type="button" class="btn btn-sm fs-12 btn-link text-body text-decoration-none px-0 shadow-none">
+                                                                    <i class=" ri-calendar-2-line  text-muted align-bottom me-1"></i> <?= (strtotime($userDocDtlKyc[1]->created_at)) ? date('M Y', strtotime($userDocDtlKyc[1]->created_at)) : 'NA' ?>
+                                                                </button>
+                                                            </div>
+                                                            <!-- <div class="flex-shrink-0">
                                                             <div class="d-flex gap-3">
                                                                 <button type="button" style="background: #dc3545;" class="btn btn-sm btn-danger">
                                                                     <i class="fa fa-trash"></i>
                                                                 </button>
                                                             </div>
                                                         </div> -->
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <!-- end col -->
+
+                                            <!-- end col -->
                                         </div>
-                                    </div>
-                                    <!-- end col -->
-                                    
-                                    <!-- end col -->
+                                    <?php } else { ?>
+
+                                    <?php } ?>
                                 </div>
-                                <?php }else{ ?>
 
-                                <?php } ?>
                             </div>
-
-                        </div>
                         <?php } ?>
                         <div class="row gallery-wrapper mt-4">
                             <div class="col-lg-9">
@@ -1828,12 +1839,12 @@ public function careerForm(Request $request){
                                             $lobObj = new GloadController();
                                             $bankEid = $userDocDtl->bank_entity_id;
                                             if (!$bankEid) {
-                                                if (config('app.env') == "production") {
+                                                if (config('app.env') == "production" || config('app.env') == "testing") {
                                                     $lobObj->finboxurlPdfupload($fileviewpdf, $userDocDtl->userId, $userDocDtl->bankAttachemetPwd);
                                                 }
                                                 $bankEid = DB::table('user_docs')->where('userId', $userDocDtl->userId)->pluck('bank_entity_id')->first();
                                             }
-                                            if (config('app.env') == "production") {
+                                            if (config('app.env') == "production" || config('app.env') == "testing") {
                                                 $viewLink = $lobObj->finboxexcleReport($bankEid);
                                             } else {
                                                 $viewLink =  null;
@@ -1992,7 +2003,7 @@ public function careerForm(Request $request){
     {
         $userloggedData = $this->isUserLoggedIn();
         $userId = $userloggedData->id;
-        
+
 
         $userBankDtl = UserBankDetail::where('userId', $userId)->orderBy('id', 'desc')->first();
         $userDocDtl = UserDoc::where('userId', $userId)->orderBy('id', 'desc')->first();
@@ -2004,13 +2015,13 @@ public function careerForm(Request $request){
         $loanData = DB::table('apply_loan_histories')->where('userId', $userId)->where('status', 'pending')->first();
         $empHistory = EmploymentHistory::where('userId', $userId)->first();
 
-        $personaloan = DB::table('apply_loan_histories')->where('loanCategory',2)->where('status','!=','pending')->where('userId',$userId)->count() ?? 0;
-        $nonpersonaloan = DB::table('apply_loan_histories')->where('loanCategory','!=',2)->where('status','!=','pending')->where('userId',$userId)->count() ?? 0;
+        $personaloan = DB::table('apply_loan_histories')->where('loanCategory', 2)->where('status', '!=', 'pending')->where('userId', $userId)->count() ?? 0;
+        $nonpersonaloan = DB::table('apply_loan_histories')->where('loanCategory', '!=', 2)->where('status', '!=', 'pending')->where('userId', $userId)->count() ?? 0;
 
         // dd();
 
         // if($personaloan == 0 && $nonpersonaloan == 0){
-            $category = Category::where(['status' => 1])->orderBY('name', 'asc')->get();
+        $category = Category::where(['status' => 1])->orderBY('name', 'asc')->get();
         // }else if($personaloan > 0){
         //     $category = Category::where('status',"1")->where("id",2)->orderBY('name', 'asc')->get();
         // }else{
@@ -2026,10 +2037,10 @@ public function careerForm(Request $request){
         //     session()->forget('step');
         // }
         // dd(session()->all());
-        $indiaStates=$this->indianStates;
-        
+        $indiaStates = $this->indianStates;
 
-        return view('web.apply-now', compact('category', 'userloggedData', 'userBankDtl', 'userDocDtl', 'otherKycDocs','otherDocs', 'coApplicantDtl', 'empHistory', 'loanData','indiaStates'));
+
+        return view('web.apply-now', compact('category', 'userloggedData', 'userBankDtl', 'userDocDtl', 'otherKycDocs', 'otherDocs', 'coApplicantDtl', 'empHistory', 'loanData', 'indiaStates'));
     }
 
     public function initiateApplyLoanWeb(Request $request)
@@ -2091,9 +2102,9 @@ public function careerForm(Request $request){
             }
 
 
-            
+
             $htmlStr .= '<div class="row">';
-            if($loanType != 2){
+            if ($loanType != 2) {
                 $htmlStr .= '<div class="col-md-6 productNameHtml" ' . $productStyle . '>
                                 <div class="form-group">
                                     <label>Product Name</label>
@@ -2106,54 +2117,54 @@ public function careerForm(Request $request){
                                 </div><!-- /.form-group-->
                             </div>';
             }
-                            if($loanType != 3){
-                                $htmlStr .= '<div class="col-md-6" id="invoiceFileHtml" ' . $invoiceStyle . '>
+            if ($loanType != 3) {
+                $htmlStr .= '<div class="col-md-6" id="invoiceFileHtml" ' . $invoiceStyle . '>
                                 <div class="form-group">
                                     <label id="invoiceFileLabel">Upload ' . $invoiceText . ' </label>
                                     <input type="file" id="invoiceFile" name="invoiceFile" class="form-control">
                                     <span id="step1_invoiceFile" class="text-danger error__hh"></span>
                                 </div><!-- /.form-group-->
                             </div>';
-                            
 
-                           
-                            $htmlStr .= '<div class="col-md-6 roiTypeHtml" ' . $roiTypeStyle . '>
+
+
+                $htmlStr .= '<div class="col-md-6 roiTypeHtml" ' . $roiTypeStyle . '>
                                 <div class="form-group">
                                     <label>ROI Type</label>
                                     <select onChange="roiTypeSele(this)" id="roiType" name="roiType" class="contact-one__form-input "  >';
 
-                            $htmlStr .= '<option value="">Select</option>';
-                            if ($loanType != 8) {
-                                $htmlStr .= '<option ';
-                                if ($loanData && $loanData->roiType == "reducing_roi") {
-                                    $htmlStr .= 'selected';
-                                }
-                                $htmlStr .= ' value="reducing_roi">Reducing ROI</option>';
-                            }
-                            $htmlStr .= '<option ';
-                            if ($loanData && $loanData->roiType == "fixed_interest_roi") {
-                                $htmlStr .= 'selected';
-                            }
-                            $htmlStr .= ' value="fixed_interest_roi">Fixed Interest ROI</option>';
+                $htmlStr .= '<option value="">Select</option>';
+                if ($loanType != 8) {
+                    $htmlStr .= '<option ';
+                    if ($loanData && $loanData->roiType == "reducing_roi") {
+                        $htmlStr .= 'selected';
+                    }
+                    $htmlStr .= ' value="reducing_roi">Reducing ROI</option>';
+                }
+                $htmlStr .= '<option ';
+                if ($loanData && $loanData->roiType == "fixed_interest_roi") {
+                    $htmlStr .= 'selected';
+                }
+                $htmlStr .= ' value="fixed_interest_roi">Fixed Interest ROI</option>';
 
-                            $htmlStr .= '<option ';
-                            if ($loanData && $loanData->roiType == "quaterly_interest") {
-                                $htmlStr .= 'selected';
-                            }
-                            $htmlStr .= ' value="quaterly_interest">Quarterly Interest</option>';
-                            if ($loanType != 3) {
-                                $htmlStr .= '<option ';
-                                if ($loanData && $loanData->roiType == "bullet_repayment") {
-                                    $htmlStr .= 'selected';
-                                }
-                                $htmlStr .= ' value="bullet_repayment">Bullet Repayment</option>';
-                            }
-                            $htmlStr .= ' </select>
+                $htmlStr .= '<option ';
+                if ($loanData && $loanData->roiType == "quaterly_interest") {
+                    $htmlStr .= 'selected';
+                }
+                $htmlStr .= ' value="quaterly_interest">Quarterly Interest</option>';
+                if ($loanType != 3) {
+                    $htmlStr .= '<option ';
+                    if ($loanData && $loanData->roiType == "bullet_repayment") {
+                        $htmlStr .= 'selected';
+                    }
+                    $htmlStr .= ' value="bullet_repayment">Bullet Repayment</option>';
+                }
+                $htmlStr .= ' </select>
                                    <span id="step1_roiType" class="text-danger error__hh"></span>
                                 </div><!-- /.form-group-->
                             </div>';
-                            }
-                            $htmlStr .= '<div class="col-md-6 roiTenureHtml" ' . $tenureStyle . '>
+            }
+            $htmlStr .= '<div class="col-md-6 roiTenureHtml" ' . $tenureStyle . '>
                                 <div class="form-group">
                                     <label>Tenure</label>
                                     <select id="approveTenure" name="approveTenure"  class="contact-one__form-input " >
@@ -2174,7 +2185,7 @@ public function careerForm(Request $request){
                                     <span id="step1_approvedAmount" class="text-danger error__hh"></span>
                                 </div><!-- /.form-group-->
                             </div>';
-                            // if($loanType != 3){
+            // if($loanType != 3){
             //                     <div class="col-md-6">
             //                     <div class="form-group">
             //                         <label>ROI % </label>
@@ -2191,7 +2202,7 @@ public function careerForm(Request $request){
             //                        <span id="step1_approvedRoi" class="text-danger error__hh"></span>
             //                     </div><!-- /.form-group-->
             //                 </div>
-                            
+
             //                 $htmlStr .='<div class="col-md-6 validFromDateHtml" ' . $validDateStyle . '>
             //                     <div class="form-group">
             //                         <label>Valid From </label>
@@ -2216,7 +2227,7 @@ public function careerForm(Request $request){
             //                 </div>
 
             //             </div>';
-        // }
+            // }
         }
 
 
@@ -2340,15 +2351,17 @@ public function careerForm(Request $request){
                     </table>
                 <div><br/><br/><br/></div></div>';
 
-                if(config('app.env') == "production"){
-         AppServiceProvider::sendMail("info@maxemocapital.com", "Info Maxemo", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
-         AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com", "Shorya Mittal", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
-         AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
-         AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
-                }else{
-        // AppServiceProvider::sendMail("raju@techmavesoftware.com","Raju", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
-        AppServiceProvider::sendMail("basant@techmavesoftware.com","Basant", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
-                }
+        if (config('app.env') == "production") {
+            AppServiceProvider::sendMail("info@maxemocapital.com", "Info Maxemo", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
+            AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com", "Shorya Mittal", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
+            AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
+            AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
+        } else if (config('app.env') == "testing") {
+            AppServiceProvider::sendMail("anjali.negi@maxemocapital.com", "Anjali", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
+        } else {
+            // AppServiceProvider::sendMail("raju@techmavesoftware.com","Raju", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
+            AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "New Customer Onboard | " . $verifyWith, $htmlStAdmin);
+        }
         if ($save) {
             echo json_encode(['status' => 'success', 'message' => 'Congratulations you have registered successfully.', 'userId' => $save, 'URL' => route('userDashboard')]);
         } else {
@@ -2438,12 +2451,12 @@ public function careerForm(Request $request){
             $loanId = env('LOANID_PRE') . $applyLoan;
             $mobileNumber = $request->customerPhone;
 
-            if(config('app.env') == "production"){
-            $textMessage = 'Thank You for your Loan Application ' . $loanId . '. We will contact you shortly to take it further. For queries call us on our helpline number or visit www.maxemocapital.com -Team Maxemo';
-            AppServiceProvider::sendSms($mobileNumber, $textMessage);
+            if (config('app.env') == "production") {
+                $textMessage = 'Thank You for your Loan Application ' . $loanId . '. We will contact you shortly to take it further. For queries call us on our helpline number or visit www.maxemocapital.com -Team Maxemo';
+                AppServiceProvider::sendSms($mobileNumber, $textMessage);
 
-            $textMessage = 'Your loan application no ' . $loanId . ' for business/personal loan of ' . number_format($request->approvedAmount, 2) . ' is under process and we will notify you shortly once it is approved - Team Maxemo';
-            AppServiceProvider::sendSms($mobileNumber, $textMessage);
+                $textMessage = 'Your loan application no ' . $loanId . ' for business/personal loan of ' . number_format($request->approvedAmount, 2) . ' is under process and we will notify you shortly once it is approved - Team Maxemo';
+                AppServiceProvider::sendSms($mobileNumber, $textMessage);
             }
             echo json_encode(['status' => 'success', 'message' => 'Your loan has been applied successfully.', 'data' => $returnArr]);
             exit;
@@ -2491,14 +2504,14 @@ public function careerForm(Request $request){
             $image = AppServiceProvider::uploadImageCustom('profileImg', 'users');
         }
         // dd($image);
-        $userState = explode('_',$request->state);
+        $userState = explode('_', $request->state);
         $state = $userState[1] ?? $request->state;
         $short_state = $userState[0] ?? $request->state;
 
         $saveUp['nameTitle'] = $request->nameTitleCu;
         $saveUp['name'] = $request->customerName;
-        $saveUp['email'] = $request->customerEmail??auth()->user()->email;
-        $saveUp['mobile'] = $request->customerPhone??auth()->user()->mobile;
+        $saveUp['email'] = $request->customerEmail ?? auth()->user()->email;
+        $saveUp['mobile'] = $request->customerPhone ?? auth()->user()->mobile;
         $saveUp['maritalStatus'] = $request->maritalStatus;
         $saveUp['gender'] = $request->gender;
         $saveUp['dateOfBirth'] = $dateOfBirth;
@@ -2674,7 +2687,7 @@ public function careerForm(Request $request){
         }
 
 
-        $ifExist = UserDoc::where(['userId'=>$recordId])->first();
+        $ifExist = UserDoc::where(['userId' => $recordId])->first();
 
         if (!empty($ifExist)) {
             $saveUp['updated_at'] = date('Y-m-d H:i:s');
@@ -2727,13 +2740,13 @@ public function careerForm(Request $request){
         $saveUp['currentSalary'] = ($isBusiness == 0) ? $request->currentSalary : '0';
 
 
-        $ifExist = EmploymentHistory::where(['userId'=>$recordId,'isBusiness'=>$isBusiness])->exists();
+        $ifExist = EmploymentHistory::where(['userId' => $recordId, 'isBusiness' => $isBusiness])->exists();
 
         // dd($ifExist,$saveUp);
         //$this->saveCashFlowAnalysisInfo($request->all());
         if ($ifExist) {
             $saveUp['updated_at'] = date('Y-m-d H:i:s');
-            $save = EmploymentHistory::where(['userId'=>$recordId,'isBusiness'=>$isBusiness])->update($saveUp);
+            $save = EmploymentHistory::where(['userId' => $recordId, 'isBusiness' => $isBusiness])->update($saveUp);
         } else {
             $saveUp['status'] = 'pending';
             $saveUp['created_at'] = date('Y-m-d H:i:s');
@@ -2851,17 +2864,17 @@ public function careerForm(Request $request){
             $saveArr['validToDate'] = $validToDate;
         }
 
-        
+
         $saveArr['created_at'] = $currentDate;
         $saveArr['updated_at'] = $currentDate;
         // dd($saveArr);
 
         // $loanId = ApplyLoanHistory::create($saveArr);
-        if($loanLastPending){
+        if ($loanLastPending) {
             $loanId = ApplyLoanHistory::updateOrCreate(['status' => 'pending', 'userId' => $userId], $saveArr);
-        }else{
-            $saveArr['status']='pending';
-            $saveArr['userId']=$userId;
+        } else {
+            $saveArr['status'] = 'pending';
+            $saveArr['userId'] = $userId;
             $loanId = ApplyLoanHistory::create($saveArr);
         }
         //  DB::table('apply_loan_histories')->insertGetId($saveArr);
@@ -2907,7 +2920,7 @@ public function careerForm(Request $request){
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Company Phone No.</label>
-                            <input type="text" id="companyMobileNo" placeholder="Enter Company Phone No." onkeypress="javascript:return isNumber(event)" name="companyMobileNo" value="<?= old('companyMobileNo') ?? ((!empty($userEmploymentHistory)) ? $userEmploymentHistory->mobileNo : '') ?>" class="form-control contact-one__form-input"  required="">
+                            <input type="text" id="companyMobileNo" placeholder="Enter Company Phone No." onkeypress="javascript:return isNumber(event)" name="companyMobileNo" value="<?= old('companyMobileNo') ?? ((!empty($userEmploymentHistory)) ? $userEmploymentHistory->mobileNo : '') ?>" class="form-control contact-one__form-input" required="">
                             <span id="companyMobileNo_error" class="error_text text-danger"></span>
                         </div>
                     </div>
@@ -2915,7 +2928,7 @@ public function careerForm(Request $request){
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Telephone No.</label>
-                            <input type="text" id="companyTeleNo" placeholder="Enter Telephone No." onkeypress="javascript:return isNumber(event)" name="companyTeleNo" value="<?= old('companyTeleNo') ?? ((!empty($userEmploymentHistory)) ? $userEmploymentHistory->companyTeleNo : '') ?>" class="form-control contact-one__form-input"  required="">
+                            <input type="text" id="companyTeleNo" placeholder="Enter Telephone No." onkeypress="javascript:return isNumber(event)" name="companyTeleNo" value="<?= old('companyTeleNo') ?? ((!empty($userEmploymentHistory)) ? $userEmploymentHistory->companyTeleNo : '') ?>" class="form-control contact-one__form-input" required="">
                             <span id="companyTeleNo_error" class="error_text text-danger"></span>
                         </div>
                     </div>
@@ -2955,9 +2968,21 @@ public function careerForm(Request $request){
                             <label>Company Type</label>
                             <select id="companyType" name="companyType" class="contact-one__form-input " required="">
                                 <option value="">Select </option>
-                                <option value="Partnership" <?php if (old('companyType') && old('companyType') == 'Partnership') { echo 'selected';}elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Partnership') { echo 'selected';}?>>Partnership </option>
-                                <option value="Propritorship" <?php if (old('companyType') && old('companyType') == 'Partnership') { echo 'selected';}elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Propritorship') { echo 'selected';}?>>Propritorship </option>
-                                <option value="Pvt. Ltd." <?php if (old('companyType') && old('companyType') == 'Partnership') { echo 'selected';}elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Pvt. Ltd.') { echo 'selected';}?>>Pvt. Ltd. </option>
+                                <option value="Partnership" <?php if (old('companyType') && old('companyType') == 'Partnership') {
+                                                                echo 'selected';
+                                                            } elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Partnership') {
+                                                                echo 'selected';
+                                                            } ?>>Partnership </option>
+                                <option value="Propritorship" <?php if (old('companyType') && old('companyType') == 'Partnership') {
+                                                                    echo 'selected';
+                                                                } elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Propritorship') {
+                                                                    echo 'selected';
+                                                                } ?>>Propritorship </option>
+                                <option value="Pvt. Ltd." <?php if (old('companyType') && old('companyType') == 'Partnership') {
+                                                                echo 'selected';
+                                                            } elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Pvt. Ltd.') {
+                                                                echo 'selected';
+                                                            } ?>>Pvt. Ltd. </option>
                             </select>
                             <span id="companyType_error" class="error_text text-danger"></span>
                         </div><!-- /.form-group-->
@@ -2983,10 +3008,16 @@ public function careerForm(Request $request){
                             <label>State</label>
                             <select class="form-control form-select contact-one__form-input" name="companyState" id="companyState">
                                 <option value="">Select State</option>
-                                <?php if($this->indianStates){
-                                    foreach ($this->indianStates as $kk=>$statein){ ?>
-                                        <option <?php if(old('companyState')==$statein){ echo "selected"; }elseif(!empty($userEmploymentHistory)){ if($userEmploymentHistory->state==$statein){echo 'selected';} } ?> value="<?= $statein ?>"><?= $statein ?></option>
-                                    <?php } 
+                                <?php if ($this->indianStates) {
+                                    foreach ($this->indianStates as $kk => $statein) { ?>
+                                        <option <?php if (old('companyState') == $statein) {
+                                                    echo "selected";
+                                                } elseif (!empty($userEmploymentHistory)) {
+                                                    if ($userEmploymentHistory->state == $statein) {
+                                                        echo 'selected';
+                                                    }
+                                                } ?> value="<?= $statein ?>"><?= $statein ?></option>
+                                <?php }
                                 } ?>
                             </select>
                             <span id="companyState_error" class="error_text text-danger"></span>
@@ -3043,9 +3074,21 @@ public function careerForm(Request $request){
                             <label>Company Type</label>
                             <select id="companyType" name="companyType" class="contact-one__form-input " required="">
                                 <option value="">Select </option>
-                                <option value="Partnership" <?php if (old('companyType') && old('companyType') == 'Partnership') { echo 'selected';}elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Partnership') { echo 'selected';}?>>Partnership </option>
-                                <option value="Propritorship" <?php if (old('companyType') && old('companyType') == 'Partnership') { echo 'selected';}elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Propritorship') { echo 'selected';}?>>Propritorship </option>
-                                <option value="Pvt. Ltd." <?php if (old('companyType') && old('companyType') == 'Partnership') { echo 'selected';}elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Pvt. Ltd.') { echo 'selected';}?>>Pvt. Ltd. </option>
+                                <option value="Partnership" <?php if (old('companyType') && old('companyType') == 'Partnership') {
+                                                                echo 'selected';
+                                                            } elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Partnership') {
+                                                                echo 'selected';
+                                                            } ?>>Partnership </option>
+                                <option value="Propritorship" <?php if (old('companyType') && old('companyType') == 'Partnership') {
+                                                                    echo 'selected';
+                                                                } elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Propritorship') {
+                                                                    echo 'selected';
+                                                                } ?>>Propritorship </option>
+                                <option value="Pvt. Ltd." <?php if (old('companyType') && old('companyType') == 'Partnership') {
+                                                                echo 'selected';
+                                                            } elseif (!empty($userEmploymentHistory) && $userEmploymentHistory->companyType == 'Pvt. Ltd.') {
+                                                                echo 'selected';
+                                                            } ?>>Pvt. Ltd. </option>
                             </select>
                             <span id="companyType_error" class="error_text text-danger"></span>
                         </div><!-- /.form-group-->
@@ -3087,10 +3130,16 @@ public function careerForm(Request $request){
                             <label>State</label>
                             <select class="form-control form-select contact-one__form-input" name="companyState" id="companyState">
                                 <option value="">Select State</option>
-                                <?php if($this->indianStates){
-                                    foreach ($this->indianStates as $kk=>$statein){ ?>
-                                        <option <?php if(old('companyState')==$statein){ echo "selected"; }elseif(!empty($userEmploymentHistory)){ if($userEmploymentHistory->state==$statein){echo 'selected';} } ?> value="<?= $statein ?>"><?= $statein ?></option>
-                                    <?php } 
+                                <?php if ($this->indianStates) {
+                                    foreach ($this->indianStates as $kk => $statein) { ?>
+                                        <option <?php if (old('companyState') == $statein) {
+                                                    echo "selected";
+                                                } elseif (!empty($userEmploymentHistory)) {
+                                                    if ($userEmploymentHistory->state == $statein) {
+                                                        echo 'selected';
+                                                    }
+                                                } ?> value="<?= $statein ?>"><?= $statein ?></option>
+                                <?php }
                                 } ?>
                             </select>
                             <span id="companyState_error" class="error_text text-danger"></span>
@@ -3139,9 +3188,9 @@ public function careerForm(Request $request){
                     $availableLimit = $credHistoryArr['availableLimit'];
                     $totalCredit = $credHistoryArr['totalCredit'];
                     $totalDebit = $credHistoryArr['totalDebit'];
-                    
-                    $leftamount = $availableLimit/$approvedAmount;
-                    $leftamount = $leftamount*100;
+
+                    $leftamount = $availableLimit / $approvedAmount;
+                    $leftamount = $leftamount * 100;
                     $paymentURL = "'" . route('initiateRawMaterialPayment', base64_encode($loanId)) . "'";
                     $htmlStr .= '<div class="row">
                         <div class="col-lg-12">
@@ -3161,7 +3210,7 @@ public function careerForm(Request $request){
                                         <div class="amount_limit">
                                             <h5>Limit</h5>
                                             <div class="progress h-3 bg-slate-150 dark:bg-navy-500">
-                                                <div style="width:'.$leftamount.'%" class=" rounded-full bg-primary dark:bg-accent"></div>
+                                                <div style="width:' . $leftamount . '%" class=" rounded-full bg-primary dark:bg-accent"></div>
                                             </div>
                                             <div class="limit_amount">
                                                 <p> ' . $approvedAmount . '<span> /  ' . $availableLimit . ' </span></p>
@@ -3364,12 +3413,12 @@ public function careerForm(Request $request){
                     <label>' . $loanDetails->approvedTenureD . ' </label>
                 </div>';
                     }
-                //     if ($loanDetails->monthlyEMI) {
-                //         $productStr .= '<div class="col-lg-6 mt-3">
-                //     <label ><strong>' . $emiLabelMonth . '</strong></label><br>
-                //     <label>' . $loanDetails->monthlyEMI . ' </label>
-                // </div>';
-                //     }
+                    //     if ($loanDetails->monthlyEMI) {
+                    //         $productStr .= '<div class="col-lg-6 mt-3">
+                    //     <label ><strong>' . $emiLabelMonth . '</strong></label><br>
+                    //     <label>' . $loanDetails->monthlyEMI . ' </label>
+                    // </div>';
+                    //     }
 
                     if ($loanDetails->monthlyEMI) {
                         $productStr .= '<div class="col-lg-6 mt-3">
@@ -3453,7 +3502,7 @@ public function careerForm(Request $request){
                 </div>';
                         $productStr .= '<div class="col-lg-6 mt-3">
                 <label ><strong>&nbsp;</strong></label><br>
-                    <button type="button" id="bullet_repaymentSetButton" onclick="getPaybleAmountBulletRepayment('.$loanDetails->id.');" class="btn btn-warning bg-warning">Get Payble Amount</button>
+                    <button type="button" id="bullet_repaymentSetButton" onclick="getPaybleAmountBulletRepayment(' . $loanDetails->id . ');" class="btn btn-warning bg-warning">Get Payble Amount</button>
                 </div>';
                     }
 
@@ -3780,15 +3829,17 @@ public function careerForm(Request $request){
         $save = DB::table('raw_materials_loan_requests')->insertGetId($saveArr);
         if ($save) {
             $verifyWith = env('APP_NAME');
-            $htmlStAdmin = "Dear Admin,<br>".$userDtl->name." (".$userDtl->customerCode.") has sent amount request of ".$amount." INR for RAW loan (LF00".$loanId.") at ".$currentDate.".<br><br>";
-            
-            if(config('app.env') == "production"){
-                AppServiceProvider::sendMail("info@maxemocapital.com", "Info Maxemo", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
-                AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com", "Shorya Mittal", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
-                AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
-                AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
-            }else{
-                AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant Singh", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
+            $htmlStAdmin = "Dear Admin,<br>" . $userDtl->name . " (" . $userDtl->customerCode . ") has sent amount request of " . $amount . " INR for RAW loan (LF00" . $loanId . ") at " . $currentDate . ".<br><br>";
+
+            if (config('app.env') == "production") {
+                AppServiceProvider::sendMail("info@maxemocapital.com", "Info Maxemo", "Raw loan #LF0" . $loanId . " disbursement Request | " . $verifyWith, $htmlStAdmin);
+                AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com", "Shorya Mittal", "Raw loan #LF0" . $loanId . " disbursement Request | " . $verifyWith, $htmlStAdmin);
+                AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "Raw loan #LF0" . $loanId . " disbursement Request | " . $verifyWith, $htmlStAdmin);
+                AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "Raw loan #LF0" . $loanId . " disbursement Request | " . $verifyWith, $htmlStAdmin);
+            } else if (config('app.env') == "testing") {
+                AppServiceProvider::sendMail("anjali.negi@maxemocapital.com", "Anjali", "Raw loan #LF0" . $loanId . " disbursement Request | " . $verifyWith, $htmlStAdmin);
+            } else {
+                AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant Singh", "Raw loan #LF0" . $loanId . " disbursement Request | " . $verifyWith, $htmlStAdmin);
                 // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "Raw loan #LF0".$loanId." disbursement Request | " . $verifyWith, $htmlStAdmin);
             }
 
@@ -3850,7 +3901,7 @@ public function careerForm(Request $request){
         return view('web.payment.index', compact('loanDetails', 'userloggedData'));
     }
 
-    
+
 
     public function getYearDiffInTwoDates($dob)
     {
@@ -3871,7 +3922,7 @@ public function careerForm(Request $request){
     {
         if (!empty(auth()->user())) {
             if (auth()->user()->userType == 'user') {
-                $users = DB::table('users')->where('id',auth()->user()->id)->first();
+                $users = DB::table('users')->where('id', auth()->user()->id)->first();
                 return $users;
             } else {
                 return false;

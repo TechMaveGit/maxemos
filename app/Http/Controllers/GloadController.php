@@ -14,7 +14,7 @@ class GloadController extends Controller
     public function ocr_adhaar_verification($docType, $file_name = null)
     {
         
-         if(config('app.env') != "production"){
+         if(config('app.env') != "local"){
              return 0;
          }
         $newdocType = $docType;
@@ -80,7 +80,7 @@ class GloadController extends Controller
 
     public static function adhaarlocation($lat, $long, $address)
     {
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $docType = 348;
@@ -169,7 +169,7 @@ class GloadController extends Controller
 
     public function step1($url, $data)
     {
-        // if(config('app.env') != "production"){
+        // if(config('app.env') != "local"){
         //     return 0;
         // }
         $curl = curl_init();
@@ -198,7 +198,7 @@ class GloadController extends Controller
     public static function pancard_verification($pancard)
     {
         //dd('--'); 
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $url = "https://www.truthscreen.com/api/v2.2/idsearch";
@@ -247,7 +247,7 @@ class GloadController extends Controller
 
     public static function addLocal($lat, $long, $address)
     {
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $url = "https://www.truthscreen.com/geotagging/idsearch";
@@ -294,7 +294,7 @@ class GloadController extends Controller
     public static function adhaar_verification($adhaar = 'dbvpk2018f')
     {
 
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $url = "https://www.truthscreen.com/api/v2.2/idsearch";
@@ -343,7 +343,7 @@ class GloadController extends Controller
     public static function credit_report($data = '')
     {
 
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $curl = curl_init();
@@ -374,7 +374,7 @@ class GloadController extends Controller
 
     public  function bankstatementData($file_data, $password = null)
     {
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $file = $file_data;
@@ -413,7 +413,7 @@ class GloadController extends Controller
 
     public function finboxurlPdfupload($pdfImage, $userID, $password = null)
     {
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $apiEndpoint = 'https://portal.finbox.in/bank-connect/v1/statement/bankless_upload/?identity=true';
@@ -462,7 +462,7 @@ class GloadController extends Controller
 
     public function finboxexcleReport($entity_id)
     {
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $apiEndpoint = "https://portal.finbox.in/bank-connect/v1/entity/$entity_id/xlsx_report/";
@@ -492,7 +492,7 @@ class GloadController extends Controller
 
     public function eportuatData($customerData)
     {
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         // Initialize cURL session
@@ -639,7 +639,7 @@ class GloadController extends Controller
 
     public function enashAuthorization()
     {
-        if (config('app.env') != "production") {
+        if (config('app.env') != "local") {
             return 0;
         }
         $client = new Client();

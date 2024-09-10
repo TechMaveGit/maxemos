@@ -459,7 +459,9 @@ class RawMaterialLoanController extends Controller
                     AppServiceProvider::sendMail("ashish.kumar@maxemocapital.com", "Ashish Kumar", "Loan Disbursement Request #LF0".$loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
                     
                     // AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "Loan Rejected | " . $verifyWith, $htmlStAdmin);
-                } else {
+                }else if(config('app.env') == "testing"){
+                    AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali","Loan Disbursement Request #LF0".$loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
+                 } else {
                     AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
                     // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
                     // AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Rejected | " . $verifyWith, $htmlStAdmin);
@@ -550,9 +552,16 @@ class RawMaterialLoanController extends Controller
                 $verifyWith = env('APP_NAME');
                 $userDtl = User::whereId($userId)->first();
                 $htmlStAdmin = "Dear ".$userDtl->name.",<br>Your disbursement request of amount ".$lastloanRequest->loanAmount." INR has been approved for Raw material loan (LF0".$loanId.").Amount ".$amount." INR will be disburse into your account at ".$lastloanRequest->disburse_date.".<br><br>";
-                // AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant Singh",$loanRaw->amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
-                // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant Singh",$loanRaw->amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
-                AppServiceProvider::sendMail($userDtl->email, $userDtl->name,$amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+                
+                if (config('app.env') == "production") {
+                    AppServiceProvider::sendMail($userDtl->email, $userDtl->name,$amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+                }else if(config('app.env') == "testing"){
+                    AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali",$amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+                 } else{
+                    AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant Singh",$amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+                    // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant Singh",$loanRaw->amount." INR | Disbursement request approved Raw loan #LF0".$loanId." | ". $verifyWith, $htmlStAdmin);
+                 }
+                
 
                 DB::table('raw_materials_loan_requests')->where('loanId',$loanId)->update(['invoiceNumber'=>$saveArr['invoiceNumber'],'invoiceFile'=>$invoiceFile,'drawDownFormFile'=>$drawDownFormFile,'approvedAmount'=>$amount,'status'=>'disbursed']);
                 echo json_encode(['status'=>'success','message'=>'Disbursement Request Approved Successfully.']); exit;
@@ -813,7 +822,9 @@ class RawMaterialLoanController extends Controller
                     AppServiceProvider::sendMail("ashish.kumar@maxemocapital.com", "Ashish Kumar", "Loan Disbursement Request #LF0".$lastloanRequestData->loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
                     
                     // AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "Loan Rejected | " . $verifyWith, $htmlStAdmin);
-                } else {
+                }else if(config('app.env') == "testing"){
+                    AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali","Loan Disbursement Request #LF0".$lastloanRequestData->loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
+                 } else {
                     AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$lastloanRequestData->loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
                     // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Basant", "Loan Disbursement Request #LF0".$lastloanRequestData->loanId." (Raw Materials Loan) | " . $verifyWith, $htmlStAdmin);
                     // AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "Loan Rejected | " . $verifyWith, $htmlStAdmin);

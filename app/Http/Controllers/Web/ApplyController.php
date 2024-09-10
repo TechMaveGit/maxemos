@@ -182,8 +182,9 @@ class ApplyController extends Controller
                 AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com", "Shorya Mittal", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
                 AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
                 AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
-            } else {
-
+            } else if(config('app.env') == "testing"){
+                AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali","New Loan Applied | " . $verifyWith, $htmlStAdmin);
+            }else {
                 // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
                 AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
             }
@@ -449,14 +450,14 @@ class ApplyController extends Controller
         $user_id = auth()->user()->id;
 
         $saveUp = [];
-        if (config('app.env') == "production" && $request->hasFile('idProofFront') && $request->hasFile('idProofBack')) {
+        if ((config('app.env') == "production" || config('app.env') == "testing") && $request->hasFile('idProofFront') && $request->hasFile('idProofBack')) {
             $idproof = $lobObj->ocr_adhaar_verification(1);
             if (empty($idproof)) {
                 return redirect()->back()->with('error', 'Invalid Photo of Emp. identity Card !');
             }
         }
 
-        if (config('app.env') == "production" && $request->hasFile('bankAttachemet')) {
+        if ((config('app.env') == "production" || config('app.env') == "testing") && $request->hasFile('bankAttachemet')) {
             $bankdata = $lobObj->bankstatementData($request->file('bankAttachemet'), $request->bankPwd);
 
             if ($bankdata && isset($bankdata->identity) && isset($bankdata->identity->account_number)) {
@@ -511,7 +512,7 @@ class ApplyController extends Controller
                 }
                 $customerdata['fatherName'] = $userData->fatherName;
                 // dd($customerdata);
-                if (config('app.env') == "production") {
+                if (config('app.env') == "production" || config('app.env') == "testing") {
                     $equifaxData = $lobObj->eportuatData($customerdata);
                 } else {
                     $equifaxData = null;
@@ -653,7 +654,9 @@ class ApplyController extends Controller
             AppServiceProvider::sendMail("shorya.mittal@maxemocapital.com", "Shorya Mittal", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
             AppServiceProvider::sendMail("vipul.mittal@maxemocapital.com", "Vipul Mittal", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
             AppServiceProvider::sendMail("vivek.mittal@maxemocapital.com", "Vivek Mittal", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
-        } else {
+        } else if(config('app.env') == "testing"){
+            AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali","New Loan Applied | " . $verifyWith, $htmlStAdmin);
+        }else {
 
             // AppServiceProvider::sendMail("raju@techmavesoftware.com", "Raju", "New Loan Applied | " . $verifyWith, $htmlStAdmin);
             AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "New Loan Applied | " . $verifyWith, $htmlStAdmin);

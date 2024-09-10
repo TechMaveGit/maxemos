@@ -1399,7 +1399,7 @@ class EMIController extends Controller
                 // }
                 
                 $textMessage='Dear Sir, thank you for choosing Maxemo Capital Services Pvt Ltd for your business/personal needs. Your loan of Rs. '. number_format($approvedAmount,2).'/- has been disbursed into your bank A/c no. ending with ****'.$accountNumber.'. RTGS done on '.date('d M, Y'.strtotime($disbursedDate)).' with transaction ID- '.$transactionId.'. LPF of '.$lfAmountCollected.' +18% GST i.e. '.$gstAmountCollected.' have been deducted from your total loan amount. For any queries related to your loan, please Call us on our helpline number or visit www.maxemocapital.com We are happy to serve you - Team Maxemo';
-                if(config('app.env') == "production"){
+                if(config('app.env') == "production" || config('app.env') == "testing"){
                 $sent=AppServiceProvider::sendSms($mobileNumber,$textMessage);
                 }
                 echo json_encode(['status'=>'success','message'=>'Disbursement has been processed successfully.']); exit;

@@ -244,7 +244,7 @@ class CustomerController extends Controller
 
         $lobObj = new GloadController();
 
-        if (config('app.env') == "production" && !isset($request->skipadddharcheck)) {
+        if ((config('app.env') == "production" || config('app.env') == "testing") && !isset($request->skipadddharcheck)) {
             $aadhaar = $lobObj->adhaar_verification($request->aadhaar_no);
             if ($aadhaar && $aadhaar->status != 1) {
                 echo json_encode(['status' => 'error', 'message' => $aadhaar->msg]);
@@ -252,7 +252,7 @@ class CustomerController extends Controller
             }
         }
 
-        if (config('app.env') == "production" && !isset($request->skippencheck)) {
+        if ((config('app.env') == "production" || config('app.env') == "testing") && !isset($request->skippencheck)) {
             $pancard_no = $lobObj->pancard_verification($request->pancard_no);
             // dd($pancard_no);
             if ($pancard_no && $pancard_no->status != 1) {
@@ -376,7 +376,10 @@ class CustomerController extends Controller
             if (config('app.env') == "production") {
                 $bccMail = config('mail.prodAdminMail');
                 AppServiceProvider::sendMail("info@maxemocapital.com", "Info Maxemo", "New Customer Onboard | " . $verifyWith, $htmlStAdmin,$bccMail);
-            } else {
+            } else if(config('app.env') == "testing"){
+                $bccMail = config('mail.prodAdminMail');
+                AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali","New Customer Onboard | " . $verifyWith, $htmlStAdmin,$bccMail);
+             }else {
                 $bccMail = config('mail.testMail');
                 AppServiceProvider::sendMail("basant@techmavesoftware.com", "Basant", "New Customer Onboard | " . $verifyWith, $htmlStAdmin,$bccMail);
             }
@@ -779,7 +782,7 @@ class CustomerController extends Controller
 
         $htmlStr .= '<div class="col-lg-4 mt-3">
                     <label><strong>Is Interest Already Paid</strong></label><br>';
-        if ($loanDetails->paidInterest && (int)$loanDetails->paidInterest != 0){
+        if (isset($loanDetails->paidInterest) && (int)$loanDetails->paidInterest != 0){
             $htmlStr .= '<label id="paidInterestAlr">Yes ('.$loanDetails->paidInterest.')</label>';
         }else{
             $htmlStr .= '<label>No</label>';
@@ -1821,7 +1824,10 @@ class CustomerController extends Controller
         if (config('app.env') == "production") {
             $bccMail = config('mail.prodAdminMail');
             AppServiceProvider::sendMail("info@maxemocapital.com", "Info Maxemo", "Loan Rejected | " . $verifyWith, $htmlStAdmin,$bccMail);
-        } else {
+        } else if(config('app.env') == "testing"){
+            $bccMail = config('mail.prodAdminMail');
+            AppServiceProvider::sendMail("anjali.negi@maxemocapital.com","Anjali","Loan Rejected | " . $verifyWith, $htmlStAdmin,$bccMail);
+         }else {
             $bccMail = config('mail.testMail');
             AppServiceProvider::sendMail("basant@techmavesoftware.com", "Raju", "Loan Rejected | " . $verifyWith, $htmlStAdmin,$bccMail);
         }
@@ -2969,12 +2975,12 @@ class CustomerController extends Controller
                                             $lobObj = new GloadController();
                                             $bankEid = $userDocDtl->bank_entity_id;
                                             if (!$bankEid) {
-                                                if (config('app.env') == "production") {
+                                                if (config('app.env') == "production" || config('app.env') == "testing") {
                                                     $lobObj->finboxurlPdfupload($fileviewpdf, $userDocDtl->userId, $userDocDtl->bankAttachemetPwd);
                                                 }
                                                 $bankEid = DB::table('user_docs')->where('userId', $userDocDtl->userId)->pluck('bank_entity_id')->first();
                                             }
-                                            if (config('app.env') == "production") {
+                                            if (config('app.env') == "production" || config('app.env') == "testing") {
                                                 $viewLink = $lobObj->finboxexcleReport($bankEid);
                                             } else {
                                                 $viewLink =  null;

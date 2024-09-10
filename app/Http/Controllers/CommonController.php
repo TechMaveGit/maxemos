@@ -161,14 +161,14 @@ class CommonController extends Controller
                 //echo $textMessage; exit;
                 if ($reminderSent == 0) {
                     $reminderSent = $reminderSent + 1;
-                    if (config('app.env') == "production") {
+                    if (config('app.env') == "production" || config('app.env') == "testing") {
                         $RES = AppServiceProvider::sendSms($mobileNumber, $textMessage);
                     }
                     $sentMsgArr[] = $mobileNumber;
                 } else {
                     if ($today != $reminderSentDate) {
                         $reminderSent = $reminderSent + 1;
-                        if (config('app.env') == "production") {
+                        if (config('app.env') == "production" || config('app.env') == "testing") {
                             $RES = AppServiceProvider::sendSms($mobileNumber, $textMessage);
                         }
                         $sentMsgArr[] = $mobileNumber;
@@ -203,7 +203,7 @@ class CommonController extends Controller
 
             if ($save) {
                 $textMessage = $OTP . ' is the OTP to process your Loan Application with Maxemo Capital Services Pvt. Ltd. Valid for 10 mins. DO NOT share with anyone - Team Maxemo';
-                if (config('app.env') == "production") {
+                if (config('app.env') == "production" || config('app.env') == "testing") {
                     $RES = AppServiceProvider::sendSms($mobile, $textMessage);
                 }
 
@@ -447,7 +447,7 @@ class CommonController extends Controller
             }
             $lobObj = new GloadController();
             if ($customerdata) {
-                if (config('app.env') == "production") {
+                if (config('app.env') == "production" || config('app.env') == "testing") {
                     $equifaxData = $lobObj->eportuatData($customerdata);
                 } else {
                     $equifaxData = null;
@@ -1221,7 +1221,7 @@ class CommonController extends Controller
             exit;
         }
         $textMessage = 'Thank You for your Loan Application LM001. We will contact you shortly to take it further. For queries call us on our helpline number or visit www.maxemocapital.com -Team Maxemo';;
-        if (config('app.env') == "production") {
+        if (config('app.env') == "production" || config('app.env') == "testing") {
             $RES = AppServiceProvider::sendSms($mobileNumber, $textMessage);
         }
 
@@ -1239,12 +1239,12 @@ class CommonController extends Controller
 
         if ($type == 'bank') {
             $textMessage = 'Dear customer, your loan application <Loan application number> is ready to sanction. Kindly complete the bank A/c validation process just by clicking here <Bank A/c validation link> - Team Maxemo';
-            if (config('app.env') == "production") {
+            if (config('app.env') == "production" || config('app.env') == "testing") {
                 $sent = AppServiceProvider::sendSms($mobileNumber, $textMessage);
             }
         } else if ($type == 'docs') {
             $textMessage = 'Dear Customer, some documents (PDDs)in your Loan A/c are pending for submission, kindly arrange for the submission -Team Maxemo';
-            if (config('app.env') == "production") {
+            if (config('app.env') == "production" || config('app.env') == "testing") {
                 $sent = AppServiceProvider::sendSms($mobileNumber, $textMessage);
             }
         }

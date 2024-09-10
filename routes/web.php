@@ -26,6 +26,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Illuminate\Support\Arr;
+
 // use DB;
 /*
 |--------------------------------------------------------------------------
@@ -144,8 +146,6 @@ Route::get('sattle-raw-material-txn-auto-custom-curl',[RawMaterialLoanController
 
 Route::group(['prefix'=>'admin', 'middleware'=>'auth:web'], function(){
     Route::get('dashboard',[DashboardController::class,'index'])->name('adminDashboard');
-    
-
     Route::post('get-profile-details-html',[CustomerController::class,'getProfileDetailsHtml'])->name('getProfileDetailsHtml');
     Route::post('send-sms-alert-by-type',[CommonController::class,'sendSmsAlertByType'])->name('sendSmsAlertByType');
     
@@ -354,6 +354,9 @@ Route::group(['prefix'=>'admin', 'middleware'=>'auth:web'], function(){
 
     Route::get('interest-calculator',[ReportController::class,'interestCalculator'])->name('interestCalculator');
     Route::post('interest-calculator-data',[ReportController::class,'interestCalculatorData'])->name('interestCalculatorData');
+
+
+    Route::post('raw-tenures-update',[RawMaterialLoanController::class,'rawMaterialLoanTenuresUpdate'])->name('rawMaterialLoanTenuresUpdate');
 });
 
 
@@ -452,73 +455,12 @@ Route::any('/test1',function (){
 
 
 Route::any('/test2',function (){
-    dd('done');
-    $client = new Client();
 
-    $merchant_txn = 'OR' . strtotime(date('Y-m-d H:i:s')) . rand(0000, 9999);
-    $sub_merchant_id = 'ORS' . strtotime(date('Y-m-d H:i:s')) . rand(0000, 9999);
+    
 
-    //$hash_sequence = "key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt";
 
-    // $max_amount=$request->amount;
-    $max_amount= "11.0";
-    $amount = '1.0';
 
-    $MERCHANT_KEY = 'VPGJ1ZK4UZ';
-    $SALT_KEY = 'BBTX2XUUMH';
-    $expiry_date = date("d/m/Y", strtotime("+1 month"));
-
-    // key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5|udf6|udf7|udf8|udf9|udf10|salt
-
-    $hash_sequence = $MERCHANT_KEY."|$merchant_txn|$amount|Laon Data|".auth()->user()->name."|".auth()->user()->email."|||||$max_amount||||||".$SALT_KEY;
-    // dd($hash_sequence);
-    $finalHash = hash('sha512', $hash_sequence);
-
-    try{
-    $response = $client->request('POST', 'https://pay.easebuzz.in/payment/initiateLink', [
-        'form_params' => [
-          'key' => $MERCHANT_KEY,
-          'txnid' => $merchant_txn,
-          'amount' => $amount,
-          'productinfo' => 'Laon Data',
-          'firstname' => auth()->user()->name,
-          'phone' => auth()->user()->mobile,
-          'email' => auth()->user()->email,
-          'surl' => 'http://maxemocapital.co.in/api/enash-failed',
-          'furl' => 'http://maxemocapital.co.in/api/enash-failed',
-          'hash' => $finalHash,
-          'udf1' => '',
-          'udf2' => '',
-          'udf3' => '',
-          'udf4' => '',
-          'udf5' => $max_amount,
-          'udf6' => '',
-          'udf7' => '',
-          'udf8' => '',
-          'udf9' => '',
-          'udf10' => '',
-          'address1' => '',
-          'address2' => '',
-          'city' => '',
-          'state' => '',
-          'country' => '',
-          'zipcode' => '',
-          'customer_authentication_id' => '15d3f8f237d0467d8e865ffe2265dcb5',
-          'show_payment_mode' => 'EN',
-          'sub_merchant_id' => '',
-          'request_flow' => 'SEAMLESS',
-          'final_collection_date' => $expiry_date
-        ],
-        'headers' => [
-          'Accept' => 'application/json',
-          'Content-Type' => 'application/x-www-form-urlencoded',
-        ],
-      ]);
-    }catch(Exception $e){
-        dd($e->getMessage());
-    }
-      
-      dd(json_decode($response->getBody(),true));
+    // dd($rawDueLoan,$loanRequest,$loanRequestSave);
 });
 
 Route::any('/test11',function (){

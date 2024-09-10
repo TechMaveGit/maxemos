@@ -10,6 +10,8 @@ use App\Models\RenewalLoan;
 use App\Models\Tenure;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class RawMaterialLoanController extends Controller
@@ -78,6 +80,80 @@ class RawMaterialLoanController extends Controller
         }
     }
 
+
+    public function rawMaterialLoanTenuresUpdate(Request $request){
+        $tenuresId = $request->tenuresId;
+        $tenuresName = DB::table('tenures')->whereId($tenuresId)->first()->name;
+        $totalDays = str_replace('Days','',(int)trim($tenuresName));
+    
+        $tloanId = $request->actiontLoanId;
+    
+        $rawDueLoan = DB::select("SELECT rmc.*,t.name as tenureName FROM raw_materials_txn_details rmc left join tenures t on rmc.approvedTenure=t.id WHERE rmc.loanId='$tloanId' AND rmc.status='success' AND rmc.txnType='out' AND rmc.openingBalanceLatest != 0 ORDER BY rmc.id DESC");
+        $applyLoanDetails = DB::select("SELECT * FROM apply_loan_histories where id='$tloanId'")[0];
+        $loanRequest = (array)DB::select("SELECT * FROM raw_materials_loan_requests where loanId='$tloanId' ORDER BY id DESC");
+    
+        $applyLoanDetailsArray = (array) $applyLoanDetails;
+        $filteredApplyLoanDetails = Arr::except($applyLoanDetailsArray, ['id']);
+        $filteredApplyLoanDetails['tenure'] = $tenuresId;
+        $filteredApplyLoanDetails['approvedTenure'] = $tenuresId;
+        $loanID = DB::table('apply_loan_histories')->insertGetId($filteredApplyLoanDetails);
+    
+        $loanRequestSave = [];
+    
+        if($rawDueLoan &&  !empty($rawDueLoan)){
+            foreach($rawDueLoan as $rawDue){
+    
+                $date = Carbon::createFromFormat('Y-m-d', $rawDue->interestStartDate);
+                $newDate = $date->addDays($totalDays);
+                $tenureDueDate = $newDate->toDateString();
+    
+    
+                if($rawDue->amount == $rawDue->openingBalanceLatest){
+                    DB::table('raw_materials_txn_details')->whereId($rawDue->id)->update(['loanId'=>$loanID,'approvedTenure'=>$tenuresId,'tenureDueDate'=>$tenureDueDate]);
+                    foreach($loanRequest as $kk=>$lreq){
+                        if((float)$lreq->loanAmount == (float)$rawDue->amount){
+                            DB::table('raw_materials_loan_requests')->whereId($lreq->id)->update(['loanId'=>$loanID]);
+                            unset($loanRequest[$kk]);
+                            break;
+                        }
+                    }
+                }else{
+                    $remainingAmount = $rawDue->amount - $rawDue->openingBalanceLatest;
+    
+                    $applyLoanDetailsArrayRawLoan = (array) $rawDue;
+                    $filteredApplyLoanDetailsRawLoan = Arr::except($applyLoanDetailsArrayRawLoan, ['id','tenureName']);
+    
+                    $filteredApplyLoanDetailsRawLoan['loanId'] = $loanID;
+                    $filteredApplyLoanDetailsRawLoan['amount'] = $rawDue->openingBalanceLatest;
+                    $filteredApplyLoanDetailsRawLoan['openingBalanceLatest'] = $rawDue->openingBalanceLatest;
+                    $filteredApplyLoanDetailsRawLoan['openingBalance'] = 0;
+                    $filteredApplyLoanDetailsRawLoan['approvedTenure'] = $tenuresId;
+                    $filteredApplyLoanDetailsRawLoan['tenureDueDate'] = $tenureDueDate;
+                    DB::table('raw_materials_txn_details')->insert($filteredApplyLoanDetailsRawLoan);
+    
+                    foreach($loanRequest as $kk=>$lreq){
+                        if((float)$lreq->loanAmount == (float)$rawDue->amount){
+                            $newReq = (array)$lreq;
+                            $newReq['loanAmount'] = $rawDue->openingBalanceLatest;
+                            $newReq['approvedAmount'] = $rawDue->openingBalanceLatest;
+                            $newReq['loanId'] = $loanID;
+                            $loanRequestSave[] = Arr::except($newReq, ['id']);
+                            DB::table('raw_materials_loan_requests')->whereId($lreq->id)->update(['loanId'=>$loanID,'loanAmount'=>$remainingAmount,'approvedAmount'=>$remainingAmount]);
+                            break;
+                        }
+                    }
+                    DB::table('raw_materials_txn_details')->where(['openingBalance'=>$rawDue->amount,'txnType'=>'in','openingDate'=>$rawDue->openingDate])->update(['openingBalance'=>$remainingAmount,'openingBalanceLatest'=>0,'outstandingBalance'=>0]);
+                    DB::table('raw_materials_txn_details')->whereId($rawDue->id)->update(['amount'=>$remainingAmount,'openingBalance'=>0,'openingBalanceLatest'=>0,'outstandingBalance'=>$remainingAmount,"isFullSettled"=>1]);
+    
+                }
+            }
+        }
+        DB::table('raw_materials_loan_requests')->insert($loanRequestSave);
+        return redirect()->back()->with('success','New Loan Created Successfully !');
+    }
+
+
+
     public function rawMaterialLoanAccountDetails($loanId)
     {
         $pageTitle='Raw Material Financing Loan Account Details';
@@ -132,7 +208,7 @@ class RawMaterialLoanController extends Controller
         $tenureHtmlStr .='</select>
                 </div>';
 
-        return view('pages.loan-management.raw-material-finance-txn-list',compact('pageTitle','pageNameStr','loanId','loanDetails','userDtl','availableLimit','totalCredit','totalDebit','tenureHtmlStr','OutStandingAmount'));
+        return view('pages.loan-management.raw-material-finance-txn-list',compact('pageTitle','pageNameStr','loanId','loanDetails','userDtl','availableLimit','totalCredit','totalDebit','tenureHtmlStr','OutStandingAmount','tenures'));
     }
 
     public function rewMaterialAppliedLoansTxnHistory(Request $request)
@@ -176,7 +252,7 @@ class RawMaterialLoanController extends Controller
         $htmlStr='';
 
         $TBLLTHCLS='whitespace-nowrap bg-slate-200  py-3 font-semibold uppercase text-slate-800 dark:bg-navy-800 dark:text-navy-100 lg:px-5';
-        $htmlStr .='<div  class="is-scrollbar-hidden min-w-full overflow-x-auto" x-data="pages.tables.initExample1" style="overflow-x: auto;"><table class="is-hoverable w-full text-left table-bordered">
+        $htmlStr .='<div  class="is-scrollbar-hidden min-w-full overflow-x-auto" x-data="pages.tables.initExample1" style="overflow-x: auto;"><table class="is-hoverable is-hoverabletd w-full text-left table-bordered">
             <thead>
               <tr>
                 <th class="'.$TBLLTHCLS.'">Sr. No.</th>';

@@ -8,7 +8,7 @@
 
             <div class="flex items-center space-x-4  lg:py-6 breadcrum_right">
                 <h2 class="text-xl font-medium text-slate-800 dark:text-navy-50 lg:text-2xl breadcrum_largetitle">
-                    Dashboard
+                    Dashboard 
                 </h2>
                 <div class="hidden h-full py-1 sm:flex">
                     <div class="h-full w-px bg-slate-300 dark:bg-navy-600"></div>
@@ -24,10 +24,25 @@
                 </ul>
             </div>
         </div>
-
+        @if(Session::has('success'))
+        <div class="alert alert-success">
+            {{ Session::get('success') }}
+            @php
+                Session::forget('success');
+            @endphp
+        </div>
+        @elseif(Session::has('error'))
+        <div class="alert alert-danger">
+            {{ Session::get('error') }}
+            @php
+                Session::forget('error');
+            @endphp
+        </div>
+        @endif
         <div class="main_page_title">
             <div class="common_pagetitlebig">{{$pageTitle}} </div>
             <div class="btns_rightimport">
+                <a  class="btn btn-danger" href="{{route('profileDetails', ['all-customers-list', $userDtl->id])}}">Customer Details</a>
             </div>
         </div>
 
@@ -340,8 +355,12 @@
                                     </button>
                                     <div style="width: 100% !important;display: block;text-align: right;">
                                         <a  id="exportdataSheetRaw" class="btn btn-primary creditamt_btn" href="<?php echo route('adminExportReports',['page'=>'customer-rawmaterial-dataexport']); ?>/?loanId=<?php echo $loanDetails->id;?>&filterData=all">
-                                            <i class="fa-solid fa-money-bill-transfer"></i> Export Data
+                                            <i class="fa-solid fa-money-bill-transfer mr-2"></i> Export Data
                                         </a>
+                                        <button  type="button"  onclick="tenuresRequestRawMaterial();"
+                                        class="btn addbtn_right bg-danger font-medium text-white hover:bg-success-focus hover:shadow-lg hover:shadow-success/50 focus:bg-success-focus focus:shadow-lg focus:shadow-success/50 active:bg-success-focus/90">
+                                            <i class="fa-solid fa-plus mr-2"></i> Convert New Tenures
+                                        </button>
                                     </div>
 
                                 </div>
@@ -400,7 +419,39 @@
         </section>
     </main>
 
-    
+
+    <div class="modal fade" id="initiateApplyLoanModalTenuresUpdate" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" action="{{route('rawMaterialLoanTenuresUpdate')}}">
+                    @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Tenures Create New Loan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="btn-close">X</button>
+                </div>
+
+                <div class="modal-body">
+                        <input type="hidden" id="actiontLoanId" name="actiontLoanId">
+                        @csrf
+                        <div>
+                            <div class="col-lg-12 mt-3">
+                                <label><strong>Select Tenures</strong></label>
+                                <select name="tenuresId" class="form-select form-control">
+                                    @foreach($tenures as $key => $value)
+                                        <option value="{{$value->id}}">{{$value->name}}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success bg-success" >Proceed</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 
     <div class="modal fade" id="initiateApplyLoanModal" tabindex="-1" aria-labelledby="updateEmpInfoModal" aria-hidden="true">
@@ -569,6 +620,11 @@
 @section('scripts')
 <script>
 
+    function tenuresRequestRawMaterial(){
+        $('#actiontLoanId').val('{{$loanDetails->id}}');
+        $('#initiateApplyLoanModalTenuresUpdate').modal('show');
+    }
+
     function disburseRequestRawMaterialAmountKycApprove(){
         alertMessage('Error!', "Need to verify customer kyc. ", 'error', 'no');
     }
@@ -587,14 +643,14 @@
             pageNameStr:'{{$pageNameStr}}'
         },function (data){
             var obj = JSON.parse(data);
-            console.log(obj);
             if(obj.status=='success'){
                 $('#mainTblHtml').html(obj.data);
-                $('.is-hoverable').DataTable();
+               
             }else{
                 alertMessage('Error!', obj.message, 'error', 'no');
                 return false;
             }
+            $('.is-hoverable').DataTable();
         });
     }
 
@@ -677,7 +733,6 @@
             });
         }
     }
-
 
 /*
     function getRawMaterialLoanCalcOnTxn(debitRecordId)

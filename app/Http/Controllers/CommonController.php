@@ -1625,13 +1625,14 @@ class CommonController extends Controller
         
        
 
-        $totalInterest = $oneMonthInterest * $month;
+        $totalInterest = $oneYearInterest;
         $tdsAmount = (round($oneMonthInterest) * $tds) / 100;
         $netInterest = round($totalInterest) - $tdsAmount;
 
         $emi = ($balance + $totalInterest) / $month;
         $netemi = $emi - $tdsAmount;
         $startEmi = $emi;
+        // dd($emi,$balance,$totalInterest);
 
         if($isPaidInterest){
             $totalPaybleAmount = $balance;
@@ -1658,6 +1659,7 @@ class CommonController extends Controller
                 $principal = $emi - $interest;
             }
            
+            // dd($principal);
 
             $balance = $balance - $principal;
             $payment_date = date('Y-m-d', strtotime("+1 month", strtotime($payment_date)));
@@ -1676,6 +1678,7 @@ class CommonController extends Controller
             $emiArr['tenureInMonth'] = $month;
             $emiArr['emiList'][] = ['emiSr' => $i, 'payDate' => $payment_date, 'emiAmount' => round($emi), 'netemiAmount' => round($netemi), 'interest' => $interest, 'tdsAmount' => $tdsAmount, 'netInterest' => $netInterest, 'principle' => $principal, 'balance' => round($balance)];
         }
+        dd($emiArr);
         return $emiArr;
     }
 

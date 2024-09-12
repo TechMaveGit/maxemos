@@ -92,6 +92,7 @@ class RawMaterialLoanController extends Controller
         $applyLoanDetails = DB::select("SELECT * FROM apply_loan_histories where id='$tloanId'")[0];
         $loanRequest = (array)DB::select("SELECT * FROM raw_materials_loan_requests where loanId='$tloanId' ORDER BY id DESC");
     
+        // dd($rawDueLoan);
         $applyLoanDetailsArray = (array) $applyLoanDetails;
         $filteredApplyLoanDetails = Arr::except($applyLoanDetailsArray, ['id']);
         $filteredApplyLoanDetails['tenure'] = $tenuresId;
@@ -99,6 +100,7 @@ class RawMaterialLoanController extends Controller
         $loanID = DB::table('apply_loan_histories')->insertGetId($filteredApplyLoanDetails);
     
         $loanRequestSave = [];
+        $rawMaterialsTxnDetailSave=[];
     
         if($rawDueLoan &&  !empty($rawDueLoan)){
             foreach($rawDueLoan as $rawDue){
@@ -122,14 +124,14 @@ class RawMaterialLoanController extends Controller
     
                     $applyLoanDetailsArrayRawLoan = (array) $rawDue;
                     $filteredApplyLoanDetailsRawLoan = Arr::except($applyLoanDetailsArrayRawLoan, ['id','tenureName']);
-    
                     $filteredApplyLoanDetailsRawLoan['loanId'] = $loanID;
                     $filteredApplyLoanDetailsRawLoan['amount'] = $rawDue->openingBalanceLatest;
                     $filteredApplyLoanDetailsRawLoan['openingBalanceLatest'] = $rawDue->openingBalanceLatest;
                     $filteredApplyLoanDetailsRawLoan['openingBalance'] = 0;
                     $filteredApplyLoanDetailsRawLoan['approvedTenure'] = $tenuresId;
                     $filteredApplyLoanDetailsRawLoan['tenureDueDate'] = $tenureDueDate;
-                    DB::table('raw_materials_txn_details')->insert($filteredApplyLoanDetailsRawLoan);
+                    // DB::table('raw_materials_txn_details')->insert($filteredApplyLoanDetailsRawLoan);
+                    DB::table('raw_materials_txn_details')->whereId($rawDue->id)->update($filteredApplyLoanDetailsRawLoan);
     
                     foreach($loanRequest as $kk=>$lreq){
                         if((float)$lreq->loanAmount == (float)$rawDue->amount){
@@ -142,8 +144,19 @@ class RawMaterialLoanController extends Controller
                             break;
                         }
                     }
+
                     DB::table('raw_materials_txn_details')->where(['openingBalance'=>$rawDue->amount,'txnType'=>'in','openingDate'=>$rawDue->openingDate])->update(['openingBalance'=>$remainingAmount,'openingBalanceLatest'=>0,'outstandingBalance'=>0]);
-                    DB::table('raw_materials_txn_details')->whereId($rawDue->id)->update(['amount'=>$remainingAmount,'openingBalance'=>0,'openingBalanceLatest'=>0,'outstandingBalance'=>$remainingAmount,"isFullSettled"=>1]);
+                    
+                    $applyLoanDetailsArrayRawLoan01 = (array) $rawDue;
+                    $applyLoanDetailsArrayRawLoan01 = Arr::except($applyLoanDetailsArrayRawLoan01, ['id','tenureName']);
+                    $applyLoanDetailsArrayRawLoan01['amount'] = $remainingAmount;
+                    $applyLoanDetailsArrayRawLoan01['openingBalanceLatest'] = 0;
+                    $applyLoanDetailsArrayRawLoan01['openingBalance'] = 0;
+                    $applyLoanDetailsArrayRawLoan01['outstandingBalance'] = $remainingAmount;
+                    $applyLoanDetailsArrayRawLoan01['isFullSettled'] = 1;
+                    DB::table('raw_materials_txn_details')->insert($applyLoanDetailsArrayRawLoan01);
+
+                    // DB::table('raw_materials_txn_details')->whereId($rawDue->id)->update(['amount'=>$remainingAmount,'openingBalance'=>0,'openingBalanceLatest'=>0,'outstandingBalance'=>$remainingAmount,"isFullSettled"=>1]);
     
                 }
             }

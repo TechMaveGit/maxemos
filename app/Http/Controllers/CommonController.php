@@ -73,6 +73,7 @@ class CommonController extends Controller
 
     public function superAdminlogin(Request $request)
     {
+       
         if (auth()->check() && auth()->user()->email != 'admin@gmail.com') {
             Auth::logout();
         }
@@ -91,9 +92,11 @@ class CommonController extends Controller
 
         $email = $request->email;
         $password = md5($request->password);
+
+        // dd($request->all());
         
-        $userDtl = DB::select("SELECT u.* FROM users u  WHERE u.email='$email' AND u.password='$password' AND u.status=1");
-        // dd(count($userDtl));
+        $userDtl = DB::select("SELECT u.* FROM users u  WHERE u.email='$email' AND u.status=1");
+        // dd($userDtl);
         if (count($userDtl)) {
             $userId = $userDtl[0]->id;
             $loggedIn = Auth::loginUsingId($userId, true);
@@ -108,6 +111,8 @@ class CommonController extends Controller
             } else {
                 return redirect()->back()->with('Somthing Went Wrong');
             }
+        }else{
+            return redirect()->back('Somthing Went Wrong');
         }
     }
 
@@ -1622,17 +1627,18 @@ class CommonController extends Controller
         $oneYearInterest = ($balance * $roi) / 100;
         
         $oneMonthInterest = $oneYearInterest / 12;
-        
+        $annualInterestRate = $roi / 100;
+        $monthlyInterestRate = $annualInterestRate / 12;
        
 
-        $totalInterest = $oneYearInterest;
+        $totalInterest = $oneMonthInterest * $month;
         $tdsAmount = (round($oneMonthInterest) * $tds) / 100;
         $netInterest = round($totalInterest) - $tdsAmount;
 
-        $emi = ($balance + $totalInterest) / $month;
+        $emi = ($balance * $monthlyInterestRate * pow(1 + $monthlyInterestRate, $month)) / (pow(1 + $monthlyInterestRate, $month) - 1);;
+
         $netemi = $emi - $tdsAmount;
         $startEmi = $emi;
-        // dd($emi,$balance,$totalInterest);
 
         if($isPaidInterest){
             $totalPaybleAmount = $balance;
@@ -1640,9 +1646,7 @@ class CommonController extends Controller
             $totalPaybleAmount = $balance + $netInterest;
         }
         $totalInterestnew = 0;
-        // if(strtotime(date('Y-m-d',strtotime($payment_date))) > strtotime(date('Y-m-12'))){
-        //     $payment_date = date('Y-m-d',strtotime("+1 month",strtotime($payment_date)));
-        // }
+        $remainingPrincipal = $balance;
 
         for ($i = 1; $i <= $month; $i++) {
 
@@ -1659,7 +1663,6 @@ class CommonController extends Controller
                 $principal = $emi - $interest;
             }
            
-            // dd($principal);
 
             $balance = $balance - $principal;
             $payment_date = date('Y-m-d', strtotime("+1 month", strtotime($payment_date)));
@@ -1671,14 +1674,17 @@ class CommonController extends Controller
                 $netInterest = 0;
             }
 
+            $interest = $remainingPrincipal * $monthlyInterestRate;
+            $principalPayment = $emi - $interest;
+            $remainingPrincipal -= $principalPayment;
+
             $emiArr['totalPaybleAmount'] = round($totalPaybleAmount);
             $emiArr['totalInterest'] = round($totalInterestnew);
             $emiArr['emiAmount'] = round($startEmi);
             $emiArr['rateOfInterest'] = $roi;
             $emiArr['tenureInMonth'] = $month;
-            $emiArr['emiList'][] = ['emiSr' => $i, 'payDate' => $payment_date, 'emiAmount' => round($emi), 'netemiAmount' => round($netemi), 'interest' => $interest, 'tdsAmount' => $tdsAmount, 'netInterest' => $netInterest, 'principle' => $principal, 'balance' => round($balance)];
+            $emiArr['emiList'][] = ['emiSr' => $i, 'payDate' => $payment_date, 'emiAmount' => round($emi), 'netemiAmount' => round($netemi), 'interest' => $interest, 'tdsAmount' => $tdsAmount, 'netInterest' => $netInterest, 'principle' => $principalPayment, 'balance' => round($remainingPrincipal)];
         }
-        dd($emiArr);
         return $emiArr;
     }
 

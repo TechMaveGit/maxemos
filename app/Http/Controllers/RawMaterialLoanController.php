@@ -478,6 +478,36 @@ class RawMaterialLoanController extends Controller
         }
     }
 
+
+    public function rawPendingDocsUpload(Request $request){
+        $loanID = $request->input('raw_loan_id');
+        $raw_disb_loan_id = $request->input('raw_disb_loan_id');
+
+        if($loanID && $raw_disb_loan_id){
+            $rawLoanDisb = RawMaterialsTxnDetail::where(['loanId'=>$loanID,'id'=>$raw_disb_loan_id])->first();
+
+            if(!empty($request->invoiceFile)){
+                $rawLoanDisb['invoiceFile']=AppServiceProvider::uploadImageCustom('invoiceFile','raw-materials');
+            }
+            
+            if(!empty($request->drawDownFormFile)){
+                $rawLoanDisb['drawDownFormFile']=AppServiceProvider::uploadImageCustom('drawDownFormFile','raw-materials');
+            }
+
+            if(!empty($request->utrFormFile)){
+                $rawLoanDisb['utr_file']=AppServiceProvider::uploadImageCustom('utrFormFile','raw-materials');
+            }
+            $rawLoanDisb['invoiceNumber'] = $request->input('invoice_number');
+            $rawLoanDisb['utr_name'] = $request->input('utr_name');
+            $rawLoanDisb->save();
+            return redirect()->back()->with('success','File Uploaded Successfully.');  
+
+        }else{
+            return redirect()->back()->with('error','Somthing Went Wrong.');        
+        }
+    }
+
+
     public function disburseRequestRawMaterialAppliedLoans(Request $request){
         $loanId=$request->actionLoanId;
         $userId=$request->actionUserId;

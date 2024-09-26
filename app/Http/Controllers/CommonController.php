@@ -1654,8 +1654,8 @@ class CommonController extends Controller
 
             $interest = $oneMonthInterest;
 
-            $netInterest = $interest - $tdsAmount;
-            $totalInterestnew = $totalInterestnew + $netInterest;
+            // $netInterest = $interest - $tdsAmount;
+            // $totalInterestnew = $totalInterestnew + $netInterest;
 
             if($isPaidInterest){
                 $principal = $emi;
@@ -1669,22 +1669,23 @@ class CommonController extends Controller
 
             $payment_date = $this->showDate($payment_date);
 
-            if($isPaidInterest){
-                $interest=0;
-                $netInterest = 0;
-            }
+            
 
             $interest = $remainingPrincipal * $monthlyInterestRate;
             $principalPayment = $emi - $interest;
             $remainingPrincipal -= $principalPayment;
-
+            if($isPaidInterest){
+                $interest=0;
+                $netInterest = 0;
+            }
             $emiArr['totalPaybleAmount'] = round($totalPaybleAmount);
-            $emiArr['totalInterest'] = round($totalInterestnew);
+            $emiArr['totalInterest'] = round($oneYearInterest);
             $emiArr['emiAmount'] = round($startEmi);
             $emiArr['rateOfInterest'] = $roi;
             $emiArr['tenureInMonth'] = $month;
             $emiArr['emiList'][] = ['emiSr' => $i, 'payDate' => $payment_date, 'emiAmount' => round($emi), 'netemiAmount' => round($netemi), 'interest' => $interest, 'tdsAmount' => $tdsAmount, 'netInterest' => $netInterest, 'principle' => $principalPayment, 'balance' => round($remainingPrincipal)];
         }
+        // dd($emiArr);
         return $emiArr;
     }
 

@@ -1,6 +1,11 @@
 @extends('layout.master')
 
 @section('content')
+<style>
+    .btn_import2 {
+  padding: 8px 7px;
+}
+</style>
     <main >
         <div class="breadcrums_area breadcrums">
             <div class="common_pagetitle">Raw Material Pending Files</div>
@@ -141,19 +146,19 @@
                         <div class="row mt-3">
                             <div class="col-md-12">
                                 <strong>Invoice File</strong><br>
-                                <a href="" style="color:blue;" target="_blank" id="invoiceFileV">View Invoice</a>
+                                <a  style="color:blue;" target="_blank" id="invoiceFileV">View Invoice</a>
                             </div>
                         </div>
                         <div class="row mt-3">
                             <div class="col-md-12">
                                 <strong>Draw Down Form</strong><br>
-                                <a href="" style="color:blue;" target="_blank" id="drawDownFormFileV">View Draw Down Form</a>
+                                <a  style="color:blue;" target="_blank" id="drawDownFormFileV">View Draw Down Form</a>
                             </div>
                         </div>
                         <div class="row mt-3">
                             <div class="col-md-12">
                                 <strong>UTR Name</strong> <span id="utrNameV"></span> <br>
-                                <a href="" style="color:blue;" target="_blank" id="utrFormFileV">View UTR File</a>
+                                <a  style="color:blue;" target="_blank" id="utrFormFileV">View UTR File</a>
                             </div>
                         </div>
                     </form>
@@ -164,6 +169,63 @@
                 </form>
             </div>
         </div>
+    </div>
+
+
+
+    <div class="modal fade" id="rawDocsModalUploads" tabindex="-1" aria-labelledby="rawDocsModalUploads" aria-hidden="true">
+        <form method="POST" action="{{route('rawPendingDocsUpload')}}"  enctype="multipart/form-data" >
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                
+                <div class="modal-header">
+                    <h5 class="modal-title">Uploaded Raw Pending Document </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="btn-close">X</button>
+                </div>
+
+                <div class="modal-body">
+                        @csrf
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <strong>Invoice Number</strong><br>
+                                <input class="form-control" type="hidden" name="raw_disb_loan_id" id="uraw_disb_loan_id" />
+                                <input class="form-control" type="hidden" name="raw_loan_id" id="uraw_loan_id" />
+                                <input class="form-control" type="text" name="invoice_number" id="uinvoice_number" />
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <strong>Invoice File</strong> <a target="_blank" class="btn-link" id="uinvoice_file_label"></a> <br>
+                                <input class="form-control" type="file" name="invoiceFile" id="uinvoice_file" />
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <strong>Draw Down Form</strong> <a target="_blank" class="btn-link" id="udraedownform_label"></a><br>
+                                <input class="form-control" type="file" name="drawDownFormFile" id="udraedownform" />
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <strong>UTR Name</strong> <span id="utrNameV"></span> <br>
+                                <input class="form-control" type="text" name="utr_name" id="uutr_name" />
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <strong>UTR File</strong> <a target="_blank" class="btn-link" id="uutr_file_label"></a> <br>
+                                <input class="form-control" type="file" name="utrFormFile" id="uutr_file" />
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success bg-success" >Save</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </form>
     </div>
 @endsection
 @section('scripts')
@@ -222,19 +284,71 @@
             var urtFile=$('#rawFile'+loanIdDisburseId).attr('data-urtFile');
             
             $('#invoiceNumberV').html(invoiceNumber);
-            $('#invoiceFileV').attr('href',`{{asset('/')}}public/${invoiceFile}`);
-            $('#drawDownFormFileV').attr('href',`{{asset('/')}}public/${drawDownFormFile}`);
+            if(invoiceFile && invoiceFile != ""){
+                $('#invoiceFileV').attr('href',`{{asset('/')}}public/${invoiceFile}`);
+            }else{
+                $('#invoiceFileV').attr('href','javascript:void(0)').text('No File Exist').attr('target','');
+            }
+            if(drawDownFormFile && drawDownFormFile != ""){
+                $('#drawDownFormFileV').attr('href',`{{asset('/')}}public/${drawDownFormFile}`);
+            }else{
+                $('#drawDownFormFileV').attr('href','javascript:void(0)').text('No File Exist').attr('target','');
+            }
 
             $('#utrNameV').html(urtName);
-            if(urtFile == undefined){
-                $('#utrFormFileV').attr('href',`javascript:void(0);`);
-            }else{
+            if(urtFile && urtFile != ""){
                 $('#utrFormFileV').attr('href',`{{asset('/')}}public/${urtFile}`);
+            }else{
+                $('#utrFormFileV').attr('href','javascript:void(0)').text('No File Exist').attr('target','');
             }
-            
-
             $('#rawDocsModal').modal('show');
+        }
 
+        function rewMaterialAppliedLoansUpload(that,mainId,loanIdDisburseId){
+            let invoiceNumber = $(that).attr('data-invoiceNumber');
+            let invoiceFile = $(that).attr('data-invoiceFile');
+            let drawDownFormFile = $(that).attr('data-drawDownFormFile');
+            let utr_name = $(that).attr('data-utr_name');
+            let utr_file = $(that).attr('data-utr_file');
+
+
+            $("#uinvoice_number").val(invoiceNumber);
+            $("#uutr_name").val(utr_name);
+            if(invoiceFile && invoiceFile != ""){
+                $("#uinvoice_file_label").attr('href',`{{asset('/')}}public/${invoiceFile}`);
+                $("#uinvoice_file_label").text('View File');
+            }
+
+            if(drawDownFormFile && drawDownFormFile != ""){
+                $("#udraedownform_label").attr('href',`{{asset('/')}}public/${drawDownFormFile}`);
+                $("#udraedownform_label").text('View File');
+            }
+            if(utr_file && utr_file != ""){
+                $("#uutr_file_label").attr('href',`{{asset('/')}}public/${utr_file}`);
+                $("#uutr_file_label").text('View File');
+            }
+
+            $("#uraw_disb_loan_id").val(mainId);
+            $("#uraw_loan_id").val(loanIdDisburseId);
+            $('#rawDocsModalUploads').modal('show');
         }
     </script>
+
+@if(session()->get('success'))
+
+<script>
+
+    alertMessage('Success !', "{{session()->get('success')}}", 'success', 'yes');
+
+</script>
+
+@elseif(session()->get('error'))
+
+<script>
+
+    alertMessage('Error !', "{{session()->get('error')}}", 'error', 'no');
+
+</script>
+
+@endif
 @endsection

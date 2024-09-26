@@ -305,7 +305,10 @@ class ReportController extends Controller
                     }
                     $rawMaterialLoanAccountDetailsURL = route('rawMaterialLoanAccountDetails', $crow->loanId);
                     $htmlStr .= '<td>
-                                        <a target="_blank" href="' . $rawMaterialLoanAccountDetailsURL . '" class="btn bg-success btn_import2 font-medium text-white hover:bg-success-focus hover:shadow-lg hover:shadow-success/50 focus:bg-success-focus focus:shadow-lg focus:shadow-success/50 active:bg-success-focus/90">
+                                        <button data-invoiceNumber="' . $crow->invoiceNumber . '" data-invoiceFile="' . $crow->invoiceFile . '" data-drawDownFormFile="' . $crow->drawDownFormFile . '" data-utrName="' . $crow->utr_name . '" data-utrFile="' . $crow->utr_file . '" onclick="return rewMaterialAppliedLoansUpload(this,'.$crow->id.','.$crow->loanId.');" class="btn bg-sm bg-success h-8 w-8 p-0 text-white hover:bg-success/20 focus:bg-success/20 active:bg-success/25">
+                                            <i class="fa fa-upload"></i>
+                                        </button>
+                                        <a target="_blank" href="' . $rawMaterialLoanAccountDetailsURL . '" class="btn btn-sm bg-success btn_import2 font-medium text-white hover:bg-success-focus hover:shadow-lg hover:shadow-success/50 focus:bg-success-focus focus:shadow-lg focus:shadow-success/50 active:bg-success-focus/90">
                                             <i class="fa-solid fa-eye"></i>
                                         </a>
                                      </td>

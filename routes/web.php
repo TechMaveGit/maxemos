@@ -357,6 +357,7 @@ Route::group(['prefix'=>'admin', 'middleware'=>'auth:web'], function(){
 
 
     Route::post('raw-tenures-update',[RawMaterialLoanController::class,'rawMaterialLoanTenuresUpdate'])->name('rawMaterialLoanTenuresUpdate');
+    Route::post('raw-pending-file-upload',[RawMaterialLoanController::class,'rawPendingDocsUpload'])->name('rawPendingDocsUpload');
 });
 
 
@@ -378,7 +379,7 @@ Route::get('/cronrun',function(){
 
 
 Route::get('/mail', function () {
-    $to = 'basant@techmavesoftware.com'; // Replace with the recipient's email address
+    $to = 'manish@yopmail.com'; // Replace with the recipient's email address
     $subject = 'Test Subject DDDDDDDD';
     $body = '<p>This is a test email body.</p>';
     
